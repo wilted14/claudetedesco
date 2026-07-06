@@ -88,27 +88,53 @@ export const site = {
     // Chaîne YouTube officielle
     youtubeChannel: "https://www.youtube.com/@claudetedesco1496",
 
-    // Extraits audio locaux — placez les .mp3 dans le dossier média.
+    // Extraits audio (compositions originales de Claude Tedesco)
     audio: [
-      {
-        titre: "Morceau 1",
-        sousTitre: "Composition originale",
-        src: `${MEDIA}/morceau1.mp3`,
-      },
-      {
-        titre: "Morceau 2",
-        sousTitre: "Jazz manouche · violon",
-        src: `${MEDIA}/morceau2.mp3`,
-      },
+      { titre: "Amoroso", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Amoroso.mp3` },
+      { titre: "Antheos", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Antheos.mp3` },
+      { titre: "Armonia", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Armonia.mp3` },
+      { titre: "Énigme", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Enigme.mp3` },
+      { titre: "Évasion", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Evasion.mp3` },
+      { titre: "Inspiration", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Imspiration.mp3` },
+      { titre: "Naissance", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Naissance.mp3` },
+      { titre: "Paradise", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Paradise.mp3` },
+      { titre: "Pensées induites", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Pensees-induites.mp3` },
+      { titre: "Symphonique", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Symphonique.mp3` },
+      { titre: "Tine et le chevalier de lumière", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Tine-et-le-chevalier-de-lumiere.mp3` },
+      { titre: "Versus", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Versus.mp3` },
     ],
 
-    // Vidéos locales — placez les .mp4 dans le dossier média.
+    // Vidéos (captations & clips)
     video: [
       {
-        titre: "Captation",
+        titre: "Minor Swing",
+        sousTitre: "Jazz manouche · violon",
+        src: `${MEDIA}/minor-swing.mp4`,
+        poster: `${MEDIA}/minor-swing.jpg`,
+      },
+      {
+        titre: "Hommage à Nat King Cole",
         sousTitre: "En concert",
-        src: `${MEDIA}/video1.mp4`,
-        poster: `${MEDIA}/photo3.jpg`,
+        src: `${MEDIA}/hommage-nat-king-cole.mp4`,
+        poster: `${MEDIA}/hommage-nat-king-cole.jpg`,
+      },
+      {
+        titre: "Color the World",
+        sousTitre: "Clip",
+        src: `${MEDIA}/color-the-world.mp4`,
+        poster: `${MEDIA}/color-the-world.jpg`,
+      },
+      {
+        titre: "Flotter",
+        sousTitre: "Clip",
+        src: `${MEDIA}/flotter.mp4`,
+        poster: `${MEDIA}/flotter.jpg`,
+      },
+      {
+        titre: "Retour à la normale",
+        sousTitre: "Clip",
+        src: `${MEDIA}/retour-a-la-normale.mp4`,
+        poster: `${MEDIA}/retour-a-la-normale.jpg`,
       },
     ],
   },

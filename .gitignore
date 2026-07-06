@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# médias lourds (audio/vidéo) — non versionnés, hébergés/gérés à part
+# les photos et posters .jpg restent suivis
+*.mp3
+*.mp4
+*.mov
+*.wav
+*.aif
+*.m4a
