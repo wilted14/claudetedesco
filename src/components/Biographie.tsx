@@ -10,7 +10,7 @@ export function Biographie() {
   return (
     <section
       id="biographie"
-      className="relative border-t border-line bg-bg-soft py-24 md:py-36"
+      className="relative border-t border-line bg-bg-soft/70 py-24 md:py-36"
     >
       <div className="mx-auto grid max-w-[var(--max)] gap-14 px-6 md:grid-cols-[minmax(0,0.85fr)_1fr] md:gap-20">
         {/* Portrait */}

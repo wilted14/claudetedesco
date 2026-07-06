@@ -11,7 +11,7 @@ export function Footer() {
   return (
     <footer
       id="contact"
-      className="bg-hall relative border-t border-line py-24 md:py-32"
+      className="bg-hall-veil relative border-t border-line py-24 md:py-32"
     >
       <div className="mx-auto max-w-[var(--max)] px-6 text-center">
         <Reveal>

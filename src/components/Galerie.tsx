@@ -37,7 +37,7 @@ export function Galerie() {
   return (
     <section
       id="galerie"
-      className="relative border-t border-line bg-bg py-24 md:py-36"
+      className="relative border-t border-line bg-bg/70 py-24 md:py-36"
     >
       <div className="mx-auto max-w-[var(--max)] px-6">
         <Reveal className="mx-auto max-w-2xl text-center">

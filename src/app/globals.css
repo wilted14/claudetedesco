@@ -110,6 +110,18 @@ body {
   );
 }
 
+/* Variante translucide du fond « salle » : laisse transparaître
+   le piano animé en arrière-plan du site */
+.bg-hall-veil {
+  background:
+    radial-gradient(
+      1200px 700px at 50% -10%,
+      rgba(198, 166, 100, 0.08),
+      transparent 60%
+    ),
+    rgba(11, 11, 13, 0.7);
+}
+
 /* Léger grain / vignette de fond pour la profondeur */
 .bg-hall {
   background:
