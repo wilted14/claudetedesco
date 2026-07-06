@@ -16,8 +16,8 @@ import {
  */
 
 const FRAME_COUNT = 120;
-const FRAME_W = 1600;
-const FRAME_H = 900;
+const FRAME_W = 1280;
+const FRAME_H = 720;
 
 const frameSrc = (i: number) =>
   `/piano-frames/frame_${String(i + 1).padStart(3, "0")}.webp`;
