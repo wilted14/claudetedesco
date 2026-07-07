@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type PointerEvent } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/motion/Reveal";
@@ -31,6 +31,46 @@ export function Galerie() {
       window.removeEventListener("keydown", onKey);
     };
   }, [open, galerie.photos.length]);
+
+  // Effet 3D de la photo agrandie (souris + doigt), écriture DOM directe
+  const lbInner = useRef<HTMLDivElement>(null);
+  const lbGlare = useRef<HTMLDivElement>(null);
+  const lbRaf = useRef(0);
+
+  const onLbMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (reduce) return;
+    const el = lbInner.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    cancelAnimationFrame(lbRaf.current);
+    lbRaf.current = requestAnimationFrame(() => {
+      const rotY = (px - 0.5) * 2 * 9;
+      const rotX = -(py - 0.5) * 2 * 9;
+      el.style.transition = "transform 60ms linear";
+      el.style.transform = `perspective(1200px) rotateX(${rotX.toFixed(
+        2,
+      )}deg) rotateY(${rotY.toFixed(2)}deg)`;
+      if (lbGlare.current) {
+        lbGlare.current.style.opacity = "1";
+        lbGlare.current.style.background = `radial-gradient(circle at ${(
+          px * 100
+        ).toFixed(1)}% ${(py * 100).toFixed(
+          1,
+        )}%, rgba(255,255,255,0.22), rgba(255,255,255,0) 46%)`;
+      }
+    });
+  };
+
+  const resetLb = () => {
+    const el = lbInner.current;
+    if (!el) return;
+    cancelAnimationFrame(lbRaf.current);
+    el.style.transition = "transform 500ms cubic-bezier(0.22,1,0.36,1)";
+    el.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
+    if (lbGlare.current) lbGlare.current.style.opacity = "0";
+  };
 
   if (galerie.photos.length === 0) return null;
 
@@ -103,34 +143,50 @@ export function Galerie() {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-sm md:p-10"
             onClick={() => setOpen(null)}
           >
-            <motion.div
-              key={open}
-              initial={{ opacity: 0, scale: reduce ? 1 : 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="relative h-full max-h-[85vh] w-full max-w-4xl"
+            {/* Le cadre épouse exactement la photo → cliquer à côté ferme */}
+            <div
+              className="relative"
+              style={{ perspective: "1200px" }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Image
-                src={galerie.photos[open].src}
-                alt={galerie.photos[open].alt}
-                fill
-                sizes="100vw"
-                className="object-contain"
-                priority
-              />
-
-              {/* Fermer — note de musique dorée, près de la photo */}
-              <button
-                type="button"
-                aria-label="Fermer la photo"
-                onClick={() => setOpen(null)}
-                className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-transform duration-200 hover:scale-110 hover:bg-gold-bright focus-visible:scale-110 md:h-14 md:w-14"
+              <motion.div
+                key={open}
+                ref={lbInner}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                onPointerMove={onLbMove}
+                onPointerLeave={resetLb}
+                onPointerUp={resetLb}
+                onPointerCancel={resetLb}
+                className="relative [will-change:transform]"
+                style={{ touchAction: "none" }}
               >
-                <NoteIcon />
-                <span className="sr-only">Fermer</span>
-              </button>
-            </motion.div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={galerie.photos[open].src}
+                  alt={galerie.photos[open].alt}
+                  draggable={false}
+                  className="block h-auto max-h-[86vh] w-auto max-w-[92vw] select-none rounded-sm shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]"
+                />
+                {/* Reflet lumineux qui suit le curseur/doigt */}
+                <div
+                  ref={lbGlare}
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-sm opacity-0 mix-blend-overlay transition-opacity duration-300"
+                />
+                {/* Fermer — note de musique dorée, au coin de la photo */}
+                <button
+                  type="button"
+                  aria-label="Fermer la photo"
+                  onClick={() => setOpen(null)}
+                  className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-transform duration-200 hover:scale-110 hover:bg-gold-bright focus-visible:scale-110 md:h-14 md:w-14"
+                >
+                  <NoteIcon />
+                  <span className="sr-only">Fermer</span>
+                </button>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
