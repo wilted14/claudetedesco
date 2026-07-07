@@ -31,14 +31,22 @@ export function Nav() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${
-        scrolled
-          ? "border-b border-line bg-bg/80 backdrop-blur-md"
-          : "border-b border-transparent bg-transparent"
+        open
+          ? "border-b border-line bg-bg"
+          : scrolled
+            ? "border-b border-line bg-bg/80 backdrop-blur-md"
+            : "border-b border-transparent bg-transparent"
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-[var(--max)] items-center justify-between px-6 md:h-20">
         <a
-          href="#accueil"
+          href="/"
+          onClick={(e) => {
+            // Recharge complètement le site et revient en haut
+            e.preventDefault();
+            window.history.replaceState(null, "", "/");
+            window.location.reload();
+          }}
           className="font-serif text-lg tracking-wide text-ink transition-colors hover:text-gold md:text-xl"
         >
           {site.artiste.nom}
@@ -79,9 +87,9 @@ export function Nav() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 top-16 z-40 bg-bg/98 backdrop-blur-lg md:hidden"
+            className="fixed inset-0 top-16 z-40 bg-bg md:hidden"
           >
-            <ul className="flex flex-col gap-2 px-6 py-8">
+            <ul className="flex flex-col gap-1 px-6 py-6">
               {site.nav.map((item, i) => (
                 <motion.li
                   key={item.href}

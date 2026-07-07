@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { X } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/TiltCard";
 import { site } from "@/content/site";
@@ -104,14 +103,6 @@ export function Galerie() {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-sm md:p-10"
             onClick={() => setOpen(null)}
           >
-            <button
-              type="button"
-              aria-label="Fermer"
-              onClick={() => setOpen(null)}
-              className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-line-strong text-ink transition-colors hover:border-gold hover:text-gold"
-            >
-              <X size={20} />
-            </button>
             <motion.div
               key={open}
               initial={{ opacity: 0, scale: reduce ? 1 : 0.97 }}
@@ -128,10 +119,44 @@ export function Galerie() {
                 className="object-contain"
                 priority
               />
+
+              {/* Fermer — note de musique dorée, près de la photo */}
+              <button
+                type="button"
+                aria-label="Fermer la photo"
+                onClick={() => setOpen(null)}
+                className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-transform duration-200 hover:scale-110 hover:bg-gold-bright focus-visible:scale-110 md:h-14 md:w-14"
+              >
+                <NoteIcon />
+                <span className="sr-only">Fermer</span>
+              </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </section>
+  );
+}
+
+/* Note de musique (croche) dessinée en vectoriel — bouton de fermeture */
+function NoteIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <ellipse
+        cx="8"
+        cy="17"
+        rx="3.6"
+        ry="2.7"
+        transform="rotate(-20 8 17)"
+      />
+      <rect x="10.7" y="4" width="1.7" height="13.2" />
+      <path d="M12.4 4c3.2.7 4.8 2.9 3.4 5.9.3-2.4-1.3-3.7-3.4-4.1z" />
+    </svg>
   );
 }

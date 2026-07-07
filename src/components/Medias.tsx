@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Play, Pause, Music2, Film } from "lucide-react";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
 import { site } from "@/content/site";
@@ -76,27 +76,6 @@ export function Medias() {
   );
 }
 
-/* --------------------------- Détection de fichier ------------------------- */
-
-/** Vérifie la présence d'un fichier média (HEAD). undefined = en cours. */
-function useFileAvailable(src?: string) {
-  const [ok, setOk] = useState<boolean | undefined>(undefined);
-  useEffect(() => {
-    let alive = true;
-    if (!src) {
-      setOk(false);
-      return;
-    }
-    fetch(src, { method: "HEAD" })
-      .then((r) => alive && setOk(r.ok))
-      .catch(() => alive && setOk(false));
-    return () => {
-      alive = false;
-    };
-  }, [src]);
-  return ok;
-}
-
 /* --------------------------- Lecteur audio -------------------------------- */
 
 type Track = { titre: string; sousTitre: string; src: string };
@@ -107,30 +86,15 @@ function AudioList({ tracks }: { tracks: Track[] }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState<string>("");
-  const [avail, setAvail] = useState<Record<number, boolean | undefined>>({});
-
-  // Vérifie chaque fichier au montage
-  useEffect(() => {
-    let alive = true;
-    tracks.forEach((t, i) => {
-      if (!t.src) {
-        setAvail((a) => ({ ...a, [i]: false }));
-        return;
-      }
-      fetch(t.src, { method: "HEAD" })
-        .then((r) => alive && setAvail((a) => ({ ...a, [i]: r.ok })))
-        .catch(() => alive && setAvail((a) => ({ ...a, [i]: false })));
-    });
-    return () => {
-      alive = false;
-    };
-  }, [tracks]);
+  // On tente la lecture d'emblée ; on ne marque « indisponible » que si le
+  // fichier échoue réellement (bien plus fiable qu'un pré-check HEAD).
+  const [errored, setErrored] = useState<Set<number>>(new Set());
 
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
   const toggle = (i: number, src: string) => {
-    if (avail[i] === false) return;
+    if (!src || errored.has(i)) return;
     const audio = audioRef.current;
     if (!audio) return;
     if (current === i) {
@@ -154,6 +118,11 @@ function AudioList({ tracks }: { tracks: Track[] }) {
           setPlaying(false);
           setProgress(0);
         }}
+        onError={() =>
+          setErrored((s) =>
+            current === null ? s : new Set(s).add(current),
+          )
+        }
         onLoadedMetadata={(e) => setDuration(fmt(e.currentTarget.duration))}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;
@@ -164,16 +133,16 @@ function AudioList({ tracks }: { tracks: Track[] }) {
         {tracks.map((t, i) => {
           const active = current === i;
           const isPlaying = active && playing;
-          const ready = avail[i] === true;
+          const failed = errored.has(i) || !t.src;
           return (
             <li key={i}>
               <button
                 type="button"
                 onClick={() => toggle(i, t.src)}
-                disabled={!ready}
+                disabled={failed}
                 aria-label={`${isPlaying ? "Mettre en pause" : "Lire"} ${t.titre}`}
                 className={`group flex w-full items-center gap-4 border-b border-line px-5 py-4 text-left transition-colors last:border-b-0 ${
-                  ready ? "hover:bg-surface" : "cursor-default"
+                  failed ? "cursor-default" : "hover:bg-surface"
                 } ${active ? "bg-surface" : ""}`}
               >
                 <span
@@ -181,7 +150,7 @@ function AudioList({ tracks }: { tracks: Track[] }) {
                     active
                       ? "border-gold bg-gold text-bg"
                       : "border-line-strong text-ink-soft group-hover:border-gold group-hover:text-gold"
-                  } ${!ready ? "opacity-40" : ""}`}
+                  } ${failed ? "opacity-40" : ""}`}
                 >
                   {isPlaying ? (
                     <Pause size={16} />
@@ -195,7 +164,7 @@ function AudioList({ tracks }: { tracks: Track[] }) {
                   </span>
                   <span className="block truncate text-sm text-ink-mute">
                     {t.sousTitre}
-                    {!ready && " · à venir"}
+                    {failed && " · indisponible"}
                   </span>
                 </span>
                 {active && duration && (
@@ -204,7 +173,7 @@ function AudioList({ tracks }: { tracks: Track[] }) {
                   </span>
                 )}
               </button>
-              {active && ready && (
+              {active && !failed && (
                 <div className="h-0.5 w-full bg-line">
                   <div
                     className="h-full bg-gold transition-[width] duration-200"
@@ -233,16 +202,18 @@ function VideoLocal({
   src: string;
   poster?: string;
 }) {
-  const available = useFileAvailable(src);
+  const [failed, setFailed] = useState(false);
 
   return (
     <figure className="overflow-hidden rounded-sm border border-line bg-surface">
       <div className="relative aspect-video w-full bg-bg-soft">
-        {available ? (
+        {!failed ? (
           <video
             controls
+            playsInline
             preload="metadata"
             poster={poster}
+            onError={() => setFailed(true)}
             className="absolute inset-0 h-full w-full object-cover"
           >
             <source src={src} type="video/mp4" />
@@ -255,7 +226,7 @@ function VideoLocal({
             <div className="absolute inset-0 bg-bg/70" />
             <Film size={26} className="relative text-line-strong" />
             <span className="relative text-xs uppercase tracking-[0.2em]">
-              Vidéo à venir
+              Vidéo indisponible
             </span>
           </div>
         )}
