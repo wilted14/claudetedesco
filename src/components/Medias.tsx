@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Play, Pause, Music2, Film } from "lucide-react";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
 import { site } from "@/content/site";
+import { asset } from "@/lib/asset";
 
 export function Medias() {
   const { medias } = site;
@@ -100,7 +101,7 @@ function AudioList({ tracks }: { tracks: Track[] }) {
     if (current === i) {
       playing ? audio.pause() : void audio.play();
     } else {
-      audio.src = src;
+      audio.src = asset(src);
       setCurrent(i);
       setProgress(0);
       setDuration("");
@@ -212,16 +213,18 @@ function VideoLocal({
             controls
             playsInline
             preload="metadata"
-            poster={poster}
+            poster={poster ? asset(poster) : undefined}
             onError={() => setFailed(true)}
             className="absolute inset-0 h-full w-full object-cover"
           >
-            <source src={src} type="video/mp4" />
+            <source src={asset(src)} type="video/mp4" />
           </video>
         ) : (
           <div
             className="flex h-full w-full flex-col items-center justify-center gap-3 bg-cover bg-center text-ink-mute"
-            style={poster ? { backgroundImage: `url("${poster}")` } : undefined}
+            style={
+              poster ? { backgroundImage: `url("${asset(poster)}")` } : undefined
+            }
           >
             <div className="absolute inset-0 bg-bg/70" />
             <Film size={26} className="relative text-line-strong" />

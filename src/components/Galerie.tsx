@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/TiltCard";
 import { site } from "@/content/site";
+import { asset } from "@/lib/asset";
 
 export function Galerie() {
   const { galerie } = site;
@@ -115,7 +116,7 @@ export function Galerie() {
                   className="block h-full w-full"
                 >
                   <Image
-                    src={photo.src}
+                    src={asset(photo.src)}
                     alt={photo.alt}
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"
@@ -164,7 +165,7 @@ export function Galerie() {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={galerie.photos[open].src}
+                  src={asset(galerie.photos[open].src)}
                   alt={galerie.photos[open].alt}
                   draggable={false}
                   className="block h-auto max-h-[86vh] w-auto max-w-[92vw] select-none rounded-sm shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]"

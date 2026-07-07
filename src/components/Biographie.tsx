@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/TiltCard";
 import { site } from "@/content/site";
+import { asset } from "@/lib/asset";
 
 export function Biographie() {
   const { bio, artiste } = site;
@@ -20,7 +21,7 @@ export function Biographie() {
             <TiltCard className="relative aspect-[4/5] overflow-hidden rounded-sm border border-line-strong bg-surface">
               {bio.portrait ? (
                 <Image
-                  src={bio.portrait}
+                  src={asset(bio.portrait)}
                   alt={`Portrait de ${artiste.nom}`}
                   fill
                   sizes="(max-width: 768px) 100vw, 440px"

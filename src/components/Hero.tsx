@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { site } from "@/content/site";
 import { PianoMotif } from "@/components/PianoMotif";
+import { asset } from "@/lib/asset";
 
 export function Hero() {
   const reduce = useReducedMotion();
@@ -61,7 +62,7 @@ export function Hero() {
       {site.heroImage && (
         <div aria-hidden className="absolute inset-0">
           <Image
-            src={site.heroImage}
+            src={asset(site.heroImage)}
             alt=""
             fill
             priority
