@@ -50,7 +50,9 @@ export const site = {
   /* Section BIOGRAPHIE ------------------------------------------------------- */
   bio: {
     titre: "Biographie",
-    portrait: "/images/claude-portrait.jpg",
+    portrait: `${MEDIA}/claude-profil.jpg`,
+    // Cadrage de la photo (object-position) — ici centré sur le visage à droite
+    portraitPosition: "72% 38%",
     paragraphes: [
       "Premier prix du Conservatoire National de Nice, Claude Tedesco est un musicien et jazzman éclectique au profil rare. À la fois pianiste, violoniste de talent et compositeur, il navigue avec une immense fluidité entre les genres musicaux.",
       "Après s'être d'abord illustré dans le répertoire de la variété pour des émissions télévisées, il s'est affirmé comme une figure incontournable de la scène jazz et de l'improvisation. Multi-instrumentiste inspiré, il sait aussi bien escorter avec élégance la voix et les textes d'artistes compagnons de route (comme son travail remarqué au piano avec le vocaliste David Amar) que faire revivre avec virtuosité la magie du jazz manouche au violon (notamment au sein du Minor Swing Quartet en hommage à Stéphane Grappelli).",
@@ -67,11 +69,13 @@ export const site = {
   galerie: {
     titre: "Galerie",
     intro: "Instants de scène et de studio.",
-    // Ajoutez autant de photos que souhaité (photo4.jpg, photo5.jpg, ...).
+    // Ajoutez autant de photos que souhaité. `position` = cadrage (object-position).
     photos: [
-      { src: `${MEDIA}/photo1.jpg`, alt: "Claude Tedesco au piano, en tenue de concert" },
-      { src: `${MEDIA}/photo2.jpg`, alt: "Les mains de Claude Tedesco sur le clavier" },
-      { src: `${MEDIA}/photo3.jpg`, alt: "Claude Tedesco au piano, de profil" },
+      { src: `${MEDIA}/photo1.jpg`, alt: "Claude Tedesco au piano, en tenue de concert", position: "center" },
+      { src: `${MEDIA}/up2five.jpg`, alt: "Le groupe Up2Five en studio", position: "center 40%" },
+      { src: `${MEDIA}/photo2.jpg`, alt: "Les mains de Claude Tedesco sur le clavier", position: "center" },
+      { src: `${MEDIA}/photo3.jpg`, alt: "Claude Tedesco au piano, de profil", position: "center" },
+      { src: `${MEDIA}/claude-profil.jpg`, alt: "Portrait de Claude Tedesco en contre-jour", position: "72% 38%" },
     ],
   },
 

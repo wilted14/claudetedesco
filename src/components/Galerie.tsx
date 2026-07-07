@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
+import { TiltCard } from "@/components/TiltCard";
 import { site } from "@/content/site";
 
 export function Galerie() {
@@ -62,27 +63,31 @@ export function Galerie() {
                 i === 0 ? "md:col-span-2 md:row-span-2" : ""
               }
             >
-              <button
-                type="button"
-                onClick={() => setOpen(i)}
-                aria-label={`Agrandir : ${photo.alt}`}
-                className="group relative block h-full w-full overflow-hidden rounded-sm border border-line bg-surface"
+              <TiltCard
+                className={`relative w-full overflow-hidden rounded-sm border border-line bg-surface ${
+                  i === 0 ? "aspect-[4/3] md:h-full" : "aspect-[4/5]"
+                }`}
+                max={10}
               >
-                <div
-                  className={`relative w-full ${
-                    i === 0 ? "aspect-[4/3] md:h-full" : "aspect-[4/5]"
-                  }`}
+                <button
+                  type="button"
+                  onClick={() => setOpen(i)}
+                  aria-label={`Agrandir : ${photo.alt}`}
+                  className="block h-full w-full"
                 >
                   <Image
                     src={photo.src}
                     alt={photo.alt}
                     fill
                     sizes="(max-width: 768px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    className="object-cover"
+                    style={{
+                      objectPosition:
+                        (photo as { position?: string }).position ?? "center",
+                    }}
                   />
-                  <div className="absolute inset-0 bg-bg/0 transition-colors duration-500 group-hover:bg-bg/20" />
-                </div>
-              </button>
+                </button>
+              </TiltCard>
             </Reveal>
           ))}
         </div>

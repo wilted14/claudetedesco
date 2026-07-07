@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
+import { TiltCard } from "@/components/TiltCard";
 import { site } from "@/content/site";
 
 export function Biographie() {
@@ -16,7 +17,7 @@ export function Biographie() {
         {/* Portrait */}
         <Reveal className="md:sticky md:top-28 md:self-start">
           <div className="relative">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-sm border border-line-strong bg-surface">
+            <TiltCard className="relative aspect-[4/5] overflow-hidden rounded-sm border border-line-strong bg-surface">
               {bio.portrait ? (
                 <Image
                   src={bio.portrait}
@@ -24,6 +25,7 @@ export function Biographie() {
                   fill
                   sizes="(max-width: 768px) 100vw, 440px"
                   className="object-cover"
+                  style={{ objectPosition: bio.portraitPosition ?? "center" }}
                 />
               ) : (
                 // Cadre décoratif en attendant la vraie photo
@@ -36,9 +38,9 @@ export function Biographie() {
                   </span>
                 </div>
               )}
-            </div>
+            </TiltCard>
             {/* Filet doré décoratif */}
-            <div className="absolute -bottom-3 -right-3 -z-0 h-full w-full rounded-sm border border-gold/30" />
+            <div className="absolute -bottom-3 -right-3 -z-10 h-full w-full rounded-sm border border-gold/30" />
           </div>
         </Reveal>
 
