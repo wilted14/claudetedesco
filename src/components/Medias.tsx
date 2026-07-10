@@ -42,16 +42,16 @@ export function Medias() {
           </div>
         </Reveal>
 
-        {/* Enregistrements locaux (affichés si présents) */}
-        {medias.audio.length > 0 && (
+        {/* Enregistrements, organisés par collection */}
+        {medias.collections.length > 0 && (
           <div className="mt-16">
-            <div className="mb-6 flex items-center gap-2 text-ink-mute">
+            <div className="mb-8 flex items-center gap-2 text-ink-mute">
               <Music2 size={16} className="text-gold" />
               <span className="text-xs uppercase tracking-[0.2em]">
                 Enregistrements
               </span>
             </div>
-            <AudioList tracks={medias.audio} />
+            <AudioCollections collections={medias.collections} />
           </div>
         )}
 
@@ -79,30 +79,35 @@ export function Medias() {
 
 /* --------------------------- Lecteur audio -------------------------------- */
 
-type Track = { titre: string; sousTitre: string; src: string };
+type Piste = { titre: string; src: string };
+type Collection = { titre: string; sousTitre?: string; pistes: Piste[] };
 
-function AudioList({ tracks }: { tracks: Track[] }) {
+/**
+ * Discographie en collections : un SEUL élément <audio> partagé entre toutes
+ * les listes (jamais deux morceaux en même temps). Chaque piste est identifiée
+ * par « collection-piste ». Lecture optimiste : « indisponible » seulement si
+ * le fichier échoue réellement (fiable sur mobile/iOS).
+ */
+function AudioCollections({ collections }: { collections: Collection[] }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [current, setCurrent] = useState<number | null>(null);
+  const [current, setCurrent] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState<string>("");
-  // On tente la lecture d'emblée ; on ne marque « indisponible » que si le
-  // fichier échoue réellement (bien plus fiable qu'un pré-check HEAD).
-  const [errored, setErrored] = useState<Set<number>>(new Set());
+  const [errored, setErrored] = useState<Set<string>>(new Set());
 
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
-  const toggle = (i: number, src: string) => {
-    if (!src || errored.has(i)) return;
+  const toggle = (id: string, src: string) => {
+    if (!src || errored.has(id)) return;
     const audio = audioRef.current;
     if (!audio) return;
-    if (current === i) {
+    if (current === id) {
       playing ? audio.pause() : void audio.play();
     } else {
       audio.src = asset(src);
-      setCurrent(i);
+      setCurrent(id);
       setProgress(0);
       setDuration("");
       void audio.play();
@@ -110,7 +115,7 @@ function AudioList({ tracks }: { tracks: Track[] }) {
   };
 
   return (
-    <div className="overflow-hidden rounded-sm border border-line">
+    <div className="space-y-12">
       <audio
         ref={audioRef}
         onPlay={() => setPlaying(true)}
@@ -120,9 +125,7 @@ function AudioList({ tracks }: { tracks: Track[] }) {
           setProgress(0);
         }}
         onError={() =>
-          setErrored((s) =>
-            current === null ? s : new Set(s).add(current),
-          )
+          setErrored((s) => (current === null ? s : new Set(s).add(current)))
         }
         onLoadedMetadata={(e) => setDuration(fmt(e.currentTarget.duration))}
         onTimeUpdate={(e) => {
@@ -130,62 +133,107 @@ function AudioList({ tracks }: { tracks: Track[] }) {
           if (el.duration) setProgress((el.currentTime / el.duration) * 100);
         }}
       />
-      <ul>
-        {tracks.map((t, i) => {
-          const active = current === i;
-          const isPlaying = active && playing;
-          const failed = errored.has(i) || !t.src;
-          return (
-            <li key={i}>
-              <button
-                type="button"
-                onClick={() => toggle(i, t.src)}
-                disabled={failed}
-                aria-label={`${isPlaying ? "Mettre en pause" : "Lire"} ${t.titre}`}
-                className={`group flex w-full items-center gap-4 border-b border-line px-5 py-4 text-left transition-colors last:border-b-0 ${
-                  failed ? "cursor-default" : "hover:bg-surface"
-                } ${active ? "bg-surface" : ""}`}
-              >
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                    active
-                      ? "border-gold bg-gold text-bg"
-                      : "border-line-strong text-ink-soft group-hover:border-gold group-hover:text-gold"
-                  } ${failed ? "opacity-40" : ""}`}
-                >
-                  {isPlaying ? (
-                    <Pause size={16} />
-                  ) : (
-                    <Play size={16} className="ml-0.5" />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-serif text-lg text-ink">
-                    {t.titre}
-                  </span>
-                  <span className="block truncate text-sm text-ink-mute">
-                    {t.sousTitre}
-                    {failed && " · indisponible"}
-                  </span>
-                </span>
-                {active && duration && (
-                  <span className="shrink-0 text-sm tabular-nums text-ink-mute">
-                    {duration}
-                  </span>
-                )}
-              </button>
-              {active && !failed && (
-                <div className="h-0.5 w-full bg-line">
-                  <div
-                    className="h-full bg-gold transition-[width] duration-200"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+
+      {collections.map((col, c) => (
+        <div key={c}>
+          {/* En-tête de collection */}
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-1">
+            <div>
+              {col.sousTitre && (
+                <p className="mb-1 text-[0.65rem] uppercase tracking-[0.3em] text-gold">
+                  {col.sousTitre}
+                </p>
               )}
-            </li>
-          );
-        })}
-      </ul>
+              <h3 className="font-serif text-2xl font-light text-ink md:text-3xl">
+                {col.titre}
+              </h3>
+            </div>
+            <span className="text-xs uppercase tracking-[0.2em] text-ink-mute">
+              {col.pistes.length} pistes
+            </span>
+          </div>
+
+          {/* Pistes numérotées */}
+          <div className="overflow-hidden rounded-sm border border-line">
+            <ul>
+              {col.pistes.map((t, i) => {
+                const id = `${c}-${i}`;
+                const active = current === id;
+                const isPlaying = active && playing;
+                const failed = errored.has(id) || !t.src;
+                return (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => toggle(id, t.src)}
+                      disabled={failed}
+                      aria-label={`${isPlaying ? "Mettre en pause" : "Lire"} ${t.titre}`}
+                      className={`group flex w-full items-center gap-4 border-b border-line px-5 py-3.5 text-left transition-colors last:border-b-0 ${
+                        failed ? "cursor-default" : "hover:bg-surface"
+                      } ${active ? "bg-surface" : ""}`}
+                    >
+                      {/* Numéro de piste ↔ lecture (bascule au survol/actif) */}
+                      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
+                        <span
+                          className={`text-sm tabular-nums transition-opacity ${
+                            active
+                              ? "opacity-0"
+                              : "text-ink-mute group-hover:opacity-0"
+                          } ${failed ? "opacity-30" : ""}`}
+                        >
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span
+                          className={`absolute inset-0 flex items-center justify-center rounded-full transition-opacity ${
+                            active
+                              ? "bg-gold text-bg opacity-100"
+                              : "text-gold opacity-0 group-hover:opacity-100"
+                          }`}
+                        >
+                          {isPlaying ? (
+                            <Pause size={14} />
+                          ) : (
+                            <Play size={14} className="ml-0.5" />
+                          )}
+                        </span>
+                      </span>
+
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={`block truncate font-serif text-lg transition-colors ${
+                            active ? "text-gold" : "text-ink"
+                          }`}
+                        >
+                          {t.titre}
+                        </span>
+                        {failed && (
+                          <span className="block truncate text-sm text-ink-mute">
+                            indisponible
+                          </span>
+                        )}
+                      </span>
+
+                      {active && duration && (
+                        <span className="shrink-0 text-sm tabular-nums text-ink-mute">
+                          {duration}
+                        </span>
+                      )}
+                    </button>
+                    {active && !failed && (
+                      <div className="h-0.5 w-full bg-line">
+                        <div
+                          className="h-full bg-gold transition-[width] duration-200"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
