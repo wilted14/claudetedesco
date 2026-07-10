@@ -34,26 +34,31 @@ export function Galerie() {
     };
   }, [open, galerie.photos.length]);
 
-  // Effet 3D de la photo agrandie (souris + doigt), écriture DOM directe
+  // Effet 3D de la photo agrandie (souris + doigt), écriture DOM directe.
+  // On mesure le pointeur depuis le CADRE stable (lbFrame, jamais transformé)
+  // et on applique la rotation au calque intérieur (lbInner) → pas de boucle
+  // de rétroaction, donc aucun tremblement, même dans les coins.
+  const lbFrame = useRef<HTMLDivElement>(null);
   const lbInner = useRef<HTMLDivElement>(null);
   const lbGlare = useRef<HTMLDivElement>(null);
   const lbRaf = useRef(0);
 
   const onLbMove = (e: PointerEvent<HTMLDivElement>) => {
     if (reduce) return;
+    const frame = lbFrame.current;
     const el = lbInner.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width;
-    const py = (e.clientY - r.top) / r.height;
+    if (!frame || !el) return;
+    const r = frame.getBoundingClientRect();
+    const px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+    const py = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
     cancelAnimationFrame(lbRaf.current);
     lbRaf.current = requestAnimationFrame(() => {
       const rotY = (px - 0.5) * 2 * 9;
       const rotX = -(py - 0.5) * 2 * 9;
       el.style.transition = "transform 60ms linear";
-      el.style.transform = `perspective(1200px) rotateX(${rotX.toFixed(
+      el.style.transform = `rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(
         2,
-      )}deg) rotateY(${rotY.toFixed(2)}deg)`;
+      )}deg)`;
       if (lbGlare.current) {
         lbGlare.current.style.opacity = "1";
         lbGlare.current.style.background = `radial-gradient(circle at ${(
@@ -70,7 +75,7 @@ export function Galerie() {
     if (!el) return;
     cancelAnimationFrame(lbRaf.current);
     el.style.transition = "transform 500ms cubic-bezier(0.22,1,0.36,1)";
-    el.style.transform = "perspective(1200px) rotateX(0deg) rotateY(0deg)";
+    el.style.transform = "rotateX(0deg) rotateY(0deg)";
     if (lbGlare.current) lbGlare.current.style.opacity = "0";
   };
 
@@ -180,24 +185,26 @@ export function Galerie() {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-sm md:p-10"
             onClick={() => setOpen(null)}
           >
-            {/* Le cadre épouse exactement la photo → cliquer à côté ferme */}
+            {/* Cadre STABLE (jamais transformé) : épouse la photo, capte le
+                pointeur et sert de repère de mesure. Cliquer à côté ferme. */}
             <div
+              ref={lbFrame}
               className="relative"
-              style={{ perspective: "1200px" }}
+              style={{ perspective: "1200px", touchAction: "none" }}
               onClick={(e) => e.stopPropagation()}
+              onPointerMove={onLbMove}
+              onPointerLeave={resetLb}
+              onPointerUp={resetLb}
+              onPointerCancel={resetLb}
             >
+              {/* Calque incliné : la photo + le reflet */}
               <motion.div
                 key={open}
                 ref={lbInner}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                onPointerMove={onLbMove}
-                onPointerLeave={resetLb}
-                onPointerUp={resetLb}
-                onPointerCancel={resetLb}
                 className="relative [will-change:transform]"
-                style={{ touchAction: "none" }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -212,17 +219,19 @@ export function Galerie() {
                   aria-hidden
                   className="pointer-events-none absolute inset-0 rounded-sm opacity-0 mix-blend-overlay transition-opacity duration-300"
                 />
-                {/* Fermer — note de musique dorée, au coin de la photo */}
-                <button
-                  type="button"
-                  aria-label="Fermer la photo"
-                  onClick={() => setOpen(null)}
-                  className="absolute right-2 top-2 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-transform duration-200 hover:scale-110 hover:bg-gold-bright focus-visible:scale-110 md:h-14 md:w-14"
-                >
-                  <NoteIcon />
-                  <span className="sr-only">Fermer</span>
-                </button>
               </motion.div>
+
+              {/* Fermer — note dorée, HORS du calque incliné : reste fixe au
+                  coin, ne tremble pas, toujours cliquable. */}
+              <button
+                type="button"
+                aria-label="Fermer la photo"
+                onClick={() => setOpen(null)}
+                className="absolute right-2 top-2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-colors duration-200 hover:bg-gold-bright md:h-14 md:w-14"
+              >
+                <NoteIcon />
+                <span className="sr-only">Fermer</span>
+              </button>
             </div>
           </motion.div>
         )}
