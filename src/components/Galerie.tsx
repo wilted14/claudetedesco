@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/TiltCard";
+import { FlipCard } from "@/components/FlipCard";
 import { site } from "@/content/site";
 import { asset } from "@/lib/asset";
 
@@ -130,6 +131,41 @@ export function Galerie() {
               </TiltCard>
             </Reveal>
           ))}
+        </div>
+
+        {/* Albums — pochettes recto/verso */}
+        <div className="mt-24 md:mt-32">
+          <Reveal className="mx-auto max-w-2xl text-center">
+            <p className="mb-4 text-xs uppercase tracking-[0.3em] text-gold">
+              Discographie
+            </p>
+            <h3 className="font-serif text-3xl font-light text-ink md:text-4xl">
+              {site.albums.titre}
+            </h3>
+            <div className="hairline-gold mx-auto mt-6 h-px w-16" />
+            <p className="mt-6 text-ink-soft">{site.albums.intro}</p>
+          </Reveal>
+
+          <div className="mx-auto mt-12 grid max-w-3xl grid-cols-1 gap-10 sm:grid-cols-2">
+            {site.albums.items.map((album, i) => (
+              <Reveal key={i} delay={i * 0.08}>
+                <FlipCard
+                  recto={asset(album.recto)}
+                  verso={asset(album.verso)}
+                  alt={`Pochette de l'album ${album.titre}`}
+                  className="aspect-square w-full"
+                />
+                <div className="mt-4 flex items-baseline justify-between gap-3 px-1">
+                  <span className="font-serif text-xl text-ink">
+                    {album.titre}
+                  </span>
+                  <span className="shrink-0 text-sm text-ink-mute">
+                    {album.sousTitre}
+                  </span>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </div>
 

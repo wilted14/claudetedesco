@@ -73,9 +73,33 @@ export const site = {
     photos: [
       { src: `${MEDIA}/photo1.jpg`, alt: "Claude Tedesco au piano, en tenue de concert", position: "center" },
       { src: `${MEDIA}/up2five.jpg`, alt: "Le groupe Up2Five en studio", position: "center 40%" },
+      { src: `${MEDIA}/claude-piano-rouge.jpg`, alt: "Claude Tedesco devant son piano à queue", position: "center 30%" },
+      { src: `${MEDIA}/claude-violon.jpg`, alt: "Claude Tedesco au violon", position: "center" },
       { src: `${MEDIA}/photo2.jpg`, alt: "Les mains de Claude Tedesco sur le clavier", position: "center" },
+      { src: `${MEDIA}/studio-enregistrement.jpg`, alt: "Claude Tedesco dirigeant une session d'enregistrement", position: "center 30%" },
+      { src: `${MEDIA}/mains-clavier-rouge.jpg`, alt: "Mains sur le clavier en lumière rouge", position: "center" },
       { src: `${MEDIA}/photo3.jpg`, alt: "Claude Tedesco au piano, de profil", position: "center" },
       { src: `${MEDIA}/claude-profil.jpg`, alt: "Portrait de Claude Tedesco en contre-jour", position: "72% 38%" },
+    ],
+  },
+
+  /* Section ALBUMS (pochettes recto/verso) ---------------------------------- */
+  albums: {
+    titre: "Albums",
+    intro: "Cliquez sur une pochette pour la retourner.",
+    items: [
+      {
+        titre: "Rebirth",
+        sousTitre: "Eric Sempe & Synopsis · 2011",
+        recto: `${MEDIA}/album-rebirth-recto.jpg`,
+        verso: `${MEDIA}/album-rebirth-verso.jpg`,
+      },
+      {
+        titre: "Home",
+        sousTitre: "Synopsis",
+        recto: `${MEDIA}/album-home-recto.jpg`,
+        verso: `${MEDIA}/album-home-verso.jpg`,
+      },
     ],
   },
 
@@ -94,6 +118,14 @@ export const site = {
 
     // Extraits audio (compositions originales de Claude Tedesco)
     audio: [
+      { titre: "Mondes inexplorés", sousTitre: "Piano solo", src: `${MEDIA}/Mondes-inexplores.mp3` },
+      { titre: "Valse à la lune", sousTitre: "Composition originale", src: `${MEDIA}/Valse-a-la-lune.mp3` },
+      { titre: "Atlantide", sousTitre: "Composition originale", src: `${MEDIA}/Atlantide.mp3` },
+      { titre: "Eternity", sousTitre: "Composition originale", src: `${MEDIA}/Eternity.mp3` },
+      { titre: "Entre deux eaux", sousTitre: "Composition originale", src: `${MEDIA}/Entre-deux-eaux.mp3` },
+      { titre: "Peace", sousTitre: "Composition originale", src: `${MEDIA}/Peace.mp3` },
+      { titre: "Flotter", sousTitre: "Composition originale", src: `${MEDIA}/Flotter.mp3` },
+      { titre: "Color the World", sousTitre: "Composition originale", src: `${MEDIA}/Color-the-world.mp3` },
       { titre: "Amoroso", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Amoroso.mp3` },
       { titre: "Antheos", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Antheos.mp3` },
       { titre: "Armonia", sousTitre: "Composition originale · extrait", src: `${MEDIA}/Armonia.mp3` },
