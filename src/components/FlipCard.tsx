@@ -4,10 +4,11 @@ import { useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { useReducedMotion } from "framer-motion";
 
 /**
- * Carte recto/verso « pochette d'album » :
- *  – un clic (ou un tap, ou Entrée/Espace) retourne la carte ;
- *  – au survol, la carte s'incline en 3D vers le pointeur (même langage
- *    visuel que TiltCard), avec un reflet doré qui suit le curseur.
+ * Carte pochette d'album, avec ou sans verso :
+ *  – si `verso` est fourni : un clic (tap, Entrée/Espace) retourne la carte ;
+ *  – sans `verso` : simple carte recto, pas de bascule ni de badge.
+ *  – dans les deux cas, au survol la carte s'incline en 3D vers le pointeur
+ *    (même langage visuel que TiltCard), avec un reflet doré qui suit le curseur.
  * Deux transformations sont composées sur des calques séparés :
  * l'inclinaison sur le conteneur, la rotation recto/verso sur le cœur.
  * Respecte prefers-reduced-motion (bascule instantanée, pas d'inclinaison).
@@ -20,13 +21,14 @@ export function FlipCard({
   max = 9,
 }: {
   recto: string;
-  verso: string;
+  verso?: string;
   alt: string;
   className?: string;
   /** inclinaison maximale en degrés */
   max?: number;
 }) {
   const reduce = useReducedMotion();
+  const hasVerso = Boolean(verso);
   const [flipped, setFlipped] = useState(false);
   const tiltRef = useRef<HTMLDivElement>(null);
   const glareRef = useRef<HTMLDivElement>(null);
@@ -67,6 +69,7 @@ export function FlipCard({
   };
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!hasVerso) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       setFlipped((f) => !f);
@@ -81,13 +84,15 @@ export function FlipCard({
         onPointerMove={onMove}
         onPointerLeave={resetTilt}
         onPointerCancel={resetTilt}
-        className="relative h-full w-full cursor-pointer [transform-style:preserve-3d]"
-        style={{ touchAction: "pan-y" }}
-        role="button"
-        tabIndex={0}
-        aria-pressed={flipped}
-        aria-label={`${alt} — cliquer pour retourner la pochette`}
-        onClick={() => setFlipped((f) => !f)}
+        className="relative h-full w-full [transform-style:preserve-3d]"
+        style={{ touchAction: "pan-y", cursor: hasVerso ? "pointer" : "default" }}
+        role={hasVerso ? "button" : undefined}
+        tabIndex={hasVerso ? 0 : undefined}
+        aria-pressed={hasVerso ? flipped : undefined}
+        aria-label={
+          hasVerso ? `${alt} — cliquer pour retourner la pochette` : alt
+        }
+        onClick={hasVerso ? () => setFlipped((f) => !f) : undefined}
         onKeyDown={onKey}
       >
         {/* Calque retournement recto/verso */}
@@ -105,22 +110,24 @@ export function FlipCard({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={recto}
-              alt={`${alt} — recto`}
+              alt={hasVerso ? `${alt} — recto` : alt}
               className="h-full w-full object-cover"
             />
           </div>
-          {/* Verso (pré-tourné de 180°) */}
-          <div
-            className="absolute inset-0 overflow-hidden rounded-sm border border-line-strong bg-surface [backface-visibility:hidden]"
-            style={{ transform: "rotateY(180deg)" }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={verso}
-              alt={`${alt} — verso`}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          {/* Verso (pré-tourné de 180°), seulement s'il existe */}
+          {hasVerso && (
+            <div
+              className="absolute inset-0 overflow-hidden rounded-sm border border-line-strong bg-surface [backface-visibility:hidden]"
+              style={{ transform: "rotateY(180deg)" }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={verso}
+                alt={`${alt} — verso`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          )}
         </div>
 
         {/* Reflet lumineux */}
@@ -130,17 +137,19 @@ export function FlipCard({
           className="pointer-events-none absolute inset-0 rounded-sm opacity-0 mix-blend-overlay transition-opacity duration-300"
         />
 
-        {/* Badge « retourner » */}
-        <span
-          aria-hidden
-          className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-gold/90 text-bg shadow-[0_6px_20px_-4px_rgba(198,166,100,0.7)] transition-transform duration-500"
-          style={{ transform: flipped ? "rotate(180deg)" : "rotate(0deg)" }}
-        >
-          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M3 12a9 9 0 1 0 3-6.7" />
-            <path d="M6 2v3.5H9.5" />
-          </svg>
-        </span>
+        {/* Badge « retourner », seulement s'il y a un verso */}
+        {hasVerso && (
+          <span
+            aria-hidden
+            className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-gold/90 text-bg shadow-[0_6px_20px_-4px_rgba(198,166,100,0.7)] transition-transform duration-500"
+            style={{ transform: flipped ? "rotate(180deg)" : "rotate(0deg)" }}
+          >
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7" />
+              <path d="M6 2v3.5H9.5" />
+            </svg>
+          </span>
+        )}
       </div>
     </div>
   );

@@ -156,7 +156,7 @@ export function Galerie() {
               <Reveal key={i} delay={i * 0.08}>
                 <FlipCard
                   recto={asset(album.recto)}
-                  verso={asset(album.verso)}
+                  verso={album.verso ? asset(album.verso) : undefined}
                   alt={`Pochette de l'album ${album.titre}`}
                   className="aspect-square w-full"
                 />

@@ -54,7 +54,7 @@ export const site = {
     // Cadrage de la photo (object-position) — ici centré sur le visage à droite
     portraitPosition: "72% 38%",
     paragraphes: [
-      "Premier prix du Conservatoire National de Nice, Claude Tedesco est un musicien et jazzman éclectique au profil rare. À la fois pianiste, violoniste de talent et compositeur, il navigue avec une immense fluidité entre les genres musicaux.",
+      "Premier prix du Conservatoire National de Nice, Claude Tedesco est à la fois pianiste, violoniste, chanteur de talent et compositeur, il navigue avec une immense fluidité entre les genres musicaux.",
       "Après s'être d'abord illustré dans le répertoire de la variété pour des émissions télévisées, il s'est affirmé comme une figure incontournable de la scène jazz et de l'improvisation. Multi-instrumentiste inspiré, il sait aussi bien escorter avec élégance la voix et les textes d'artistes compagnons de route (comme son travail remarqué au piano avec le vocaliste David Amar) que faire revivre avec virtuosité la magie du jazz manouche au violon (notamment au sein du Minor Swing Quartet en hommage à Stéphane Grappelli).",
       "Compositeur prolifique, Claude Tedesco est l'auteur de plusieurs albums qui témoignent de sa sensibilité et de son goût pour l'expérimentation. Qu'il soit au piano, au violon ou à la création de thèmes originaux, il met sa technique irréprochable au service d'une intensité émotionnelle unique.",
     ],
@@ -88,6 +88,11 @@ export const site = {
     titre: "Albums",
     intro: "Cliquez sur une pochette pour la retourner.",
     items: [
+      {
+        titre: "Orange Time",
+        sousTitre: "Claude Tedesco",
+        recto: `${MEDIA}/album-orange-time-recto.jpg`,
+      },
       {
         titre: "Tine et le Chevalier de Lumière",
         sousTitre: "Claude Tedesco · Conte musical",
