@@ -89,6 +89,12 @@ export const site = {
     intro: "Cliquez sur une pochette pour la retourner.",
     items: [
       {
+        titre: "Tine et le Chevalier de Lumière",
+        sousTitre: "Claude Tedesco · Conte musical",
+        recto: `${MEDIA}/album-tine-recto.jpg`,
+        verso: `${MEDIA}/album-tine-verso.jpg`,
+      },
+      {
         titre: "Rebirth",
         sousTitre: "Eric Sempe & Synopsis · 2011",
         recto: `${MEDIA}/album-rebirth-recto.jpg`,

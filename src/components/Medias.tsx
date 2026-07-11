@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { Play, Pause, Music2, Film } from "lucide-react";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
 import { site } from "@/content/site";
@@ -83,13 +84,15 @@ type Piste = { titre: string; src: string };
 type Collection = { titre: string; sousTitre?: string; pistes: Piste[] };
 
 /**
- * Discographie en collections : un SEUL élément <audio> partagé entre toutes
- * les listes (jamais deux morceaux en même temps). Chaque piste est identifiée
- * par « collection-piste ». Lecture optimiste : « indisponible » seulement si
- * le fichier échoue réellement (fiable sur mobile/iOS).
+ * Discographie en collections, navigation par ONGLETS horizontaux : on choisit
+ * la collection en haut, seule sa liste s'affiche (pas de scroll interminable).
+ * Un SEUL <audio> partagé → la lecture continue même en changeant d'onglet, et
+ * l'onglet en cours de lecture affiche un point doré. Lecture optimiste :
+ * « indisponible » seulement si le fichier échoue réellement (fiable iOS).
  */
 function AudioCollections({ collections }: { collections: Collection[] }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [active, setActive] = useState(0);
   const [current, setCurrent] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -114,8 +117,12 @@ function AudioCollections({ collections }: { collections: Collection[] }) {
     }
   };
 
+  // Collection contenant le morceau en cours de lecture
+  const playingCol = current ? Number(current.split("-")[0]) : null;
+  const col = collections[active];
+
   return (
-    <div className="space-y-12">
+    <div>
       <audio
         ref={audioRef}
         onPlay={() => setPlaying(true)}
@@ -134,106 +141,139 @@ function AudioCollections({ collections }: { collections: Collection[] }) {
         }}
       />
 
-      {collections.map((col, c) => (
-        <div key={c}>
-          {/* En-tête de collection */}
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-1">
-            <div>
-              {col.sousTitre && (
-                <p className="mb-1 text-[0.65rem] uppercase tracking-[0.3em] text-gold">
-                  {col.sousTitre}
-                </p>
+      {/* Onglets horizontaux (défilables sur mobile) */}
+      <div
+        role="tablist"
+        aria-label="Collections"
+        className="-mx-1 flex gap-1 overflow-x-auto border-b border-line px-1 [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
+        {collections.map((cc, c) => {
+          const isActive = active === c;
+          const isPlayingHere = playingCol === c && playing;
+          return (
+            <button
+              key={c}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActive(c)}
+              className={`group relative shrink-0 whitespace-nowrap px-4 py-3 text-sm transition-colors ${
+                isActive ? "text-ink" : "text-ink-mute hover:text-ink"
+              }`}
+            >
+              <span className="font-serif text-base md:text-lg">{cc.titre}</span>
+              <span className="ml-2 align-middle text-xs tabular-nums text-ink-mute">
+                {cc.pistes.length}
+              </span>
+              {isPlayingHere && (
+                <span
+                  aria-hidden
+                  className="ml-2 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold align-middle"
+                />
               )}
-              <h3 className="font-serif text-2xl font-light text-ink md:text-3xl">
-                {col.titre}
-              </h3>
-            </div>
-            <span className="text-xs uppercase tracking-[0.2em] text-ink-mute">
-              {col.pistes.length} pistes
-            </span>
-          </div>
+              {/* Soulignement actif */}
+              <span
+                aria-hidden
+                className={`absolute -bottom-px left-2 right-2 h-0.5 rounded-full transition-colors ${
+                  isActive ? "bg-gold" : "bg-transparent"
+                }`}
+              />
+            </button>
+          );
+        })}
+      </div>
 
-          {/* Pistes numérotées */}
-          <div className="overflow-hidden rounded-sm border border-line">
-            <ul>
-              {col.pistes.map((t, i) => {
-                const id = `${c}-${i}`;
-                const active = current === id;
-                const isPlaying = active && playing;
-                const failed = errored.has(id) || !t.src;
-                return (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => toggle(id, t.src)}
-                      disabled={failed}
-                      aria-label={`${isPlaying ? "Mettre en pause" : "Lire"} ${t.titre}`}
-                      className={`group flex w-full items-center gap-4 border-b border-line px-5 py-3.5 text-left transition-colors last:border-b-0 ${
-                        failed ? "cursor-default" : "hover:bg-surface"
-                      } ${active ? "bg-surface" : ""}`}
+      {/* Sous-titre de la collection active */}
+      {col.sousTitre && (
+        <p className="mt-6 px-1 text-[0.65rem] uppercase tracking-[0.3em] text-gold">
+          {col.sousTitre}
+        </p>
+      )}
+
+      {/* Liste de la collection active (fondu au changement d'onglet) */}
+      <motion.div
+        key={active}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="mt-3 overflow-hidden rounded-sm border border-line"
+      >
+        <ul>
+          {col.pistes.map((t, i) => {
+            const id = `${active}-${i}`;
+            const isActive = current === id;
+            const isPlaying = isActive && playing;
+            const failed = errored.has(id) || !t.src;
+            return (
+              <li key={i}>
+                <button
+                  type="button"
+                  onClick={() => toggle(id, t.src)}
+                  disabled={failed}
+                  aria-label={`${isPlaying ? "Mettre en pause" : "Lire"} ${t.titre}`}
+                  className={`group flex w-full items-center gap-4 border-b border-line px-5 py-3.5 text-left transition-colors last:border-b-0 ${
+                    failed ? "cursor-default" : "hover:bg-surface"
+                  } ${isActive ? "bg-surface" : ""}`}
+                >
+                  {/* Numéro ↔ lecture */}
+                  <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
+                    <span
+                      className={`text-sm tabular-nums transition-opacity ${
+                        isActive
+                          ? "opacity-0"
+                          : "text-ink-mute group-hover:opacity-0"
+                      } ${failed ? "opacity-30" : ""}`}
                     >
-                      {/* Numéro de piste ↔ lecture (bascule au survol/actif) */}
-                      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
-                        <span
-                          className={`text-sm tabular-nums transition-opacity ${
-                            active
-                              ? "opacity-0"
-                              : "text-ink-mute group-hover:opacity-0"
-                          } ${failed ? "opacity-30" : ""}`}
-                        >
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span
-                          className={`absolute inset-0 flex items-center justify-center rounded-full transition-opacity ${
-                            active
-                              ? "bg-gold text-bg opacity-100"
-                              : "text-gold opacity-0 group-hover:opacity-100"
-                          }`}
-                        >
-                          {isPlaying ? (
-                            <Pause size={14} />
-                          ) : (
-                            <Play size={14} className="ml-0.5" />
-                          )}
-                        </span>
-                      </span>
-
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className={`block truncate font-serif text-lg transition-colors ${
-                            active ? "text-gold" : "text-ink"
-                          }`}
-                        >
-                          {t.titre}
-                        </span>
-                        {failed && (
-                          <span className="block truncate text-sm text-ink-mute">
-                            indisponible
-                          </span>
-                        )}
-                      </span>
-
-                      {active && duration && (
-                        <span className="shrink-0 text-sm tabular-nums text-ink-mute">
-                          {duration}
-                        </span>
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      className={`absolute inset-0 flex items-center justify-center rounded-full transition-opacity ${
+                        isActive
+                          ? "bg-gold text-bg opacity-100"
+                          : "text-gold opacity-0 group-hover:opacity-100"
+                      }`}
+                    >
+                      {isPlaying ? (
+                        <Pause size={14} />
+                      ) : (
+                        <Play size={14} className="ml-0.5" />
                       )}
-                    </button>
-                    {active && !failed && (
-                      <div className="h-0.5 w-full bg-line">
-                        <div
-                          className="h-full bg-gold transition-[width] duration-200"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
+                    </span>
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block truncate font-serif text-lg transition-colors ${
+                        isActive ? "text-gold" : "text-ink"
+                      }`}
+                    >
+                      {t.titre}
+                    </span>
+                    {failed && (
+                      <span className="block truncate text-sm text-ink-mute">
+                        indisponible
+                      </span>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      ))}
+                  </span>
+
+                  {isActive && duration && (
+                    <span className="shrink-0 text-sm tabular-nums text-ink-mute">
+                      {duration}
+                    </span>
+                  )}
+                </button>
+                {isActive && !failed && (
+                  <div className="h-0.5 w-full bg-line">
+                    <div
+                      className="h-full bg-gold transition-[width] duration-200"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </motion.div>
     </div>
   );
 }
