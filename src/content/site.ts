@@ -130,6 +130,22 @@ export const site = {
     // Enregistrements, organisés en collections (l'ordre des pistes compte)
     collections: [
       {
+        titre: "Orange Time",
+        sousTitre: "Album",
+        pistes: [
+          { titre: "Ombre chinoise", src: `${MEDIA}/orange-time/01-ombre-chinoise.mp3` },
+          { titre: "Walking on the Groove", src: `${MEDIA}/orange-time/02-walking-on-the-groove.mp3` },
+          { titre: "Judith", src: `${MEDIA}/orange-time/03-judith.mp3` },
+          { titre: "Pour Lucie", src: `${MEDIA}/orange-time/04-pour-lucie.mp3` },
+          { titre: "Express", src: `${MEDIA}/orange-time/05-express.mp3` },
+          { titre: "Hemispheres", src: `${MEDIA}/orange-time/06-hemispheres.mp3` },
+          { titre: "Will", src: `${MEDIA}/orange-time/07-will.mp3` },
+          { titre: "RG", src: `${MEDIA}/orange-time/08-rg.mp3` },
+          { titre: "Child's Mood", src: `${MEDIA}/orange-time/09-childs-mood.mp3` },
+          { titre: "Cresci", src: `${MEDIA}/orange-time/10-cresci.mp3` },
+        ],
+      },
+      {
         titre: "New Sympho",
         sousTitre: "Œuvre symphonique",
         pistes: [
