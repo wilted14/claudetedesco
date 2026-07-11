@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { site } from "@/content/site";
 import { PianoMotif } from "@/components/PianoMotif";
+import { PianoHero } from "@/components/PianoHero";
 import { asset } from "@/lib/asset";
 
 export function Hero() {
@@ -159,16 +160,16 @@ export function Hero() {
           className="hairline-gold mx-auto mt-9 h-px w-24"
         />
 
-        {/* Accroche */}
-        <motion.p
+        {/* Piano interactif — chaque touche lance un morceau au hasard */}
+        <motion.div
           custom={1.3}
           variants={fade}
           initial="hidden"
           animate="visible"
-          className="text-balance mx-auto mt-9 max-w-xl text-base leading-relaxed text-ink-soft md:text-lg"
+          className="mt-10 md:mt-12"
         >
-          {site.hero.accroche}
-        </motion.p>
+          <PianoHero />
+        </motion.div>
 
         {/* Boutons */}
         <motion.div
