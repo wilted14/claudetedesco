@@ -71,7 +71,7 @@ export function PianoHero() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-xl md:max-w-2xl">
+    <div className="mx-auto w-full max-w-2xl md:max-w-3xl">
       <audio
         ref={audioRef}
         onPlay={() => setPlaying(true)}
@@ -90,16 +90,16 @@ export function PianoHero() {
         {/* Filet doré (abattant) */}
         <div className="mb-2 h-1 rounded-full bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
 
-        {/* Clavier — légèrement incliné pour le relief */}
+        {/* Clavier — incliné pour le relief, clippé en coins arrondis lisses */}
         <div
-          className="relative select-none"
+          className="relative select-none overflow-hidden rounded-md"
           style={{
             transform: reduce ? undefined : "rotateX(7deg)",
             transformOrigin: "center bottom",
           }}
         >
           {/* Touches blanches */}
-          <div className="relative flex h-28 overflow-hidden rounded-b-md sm:h-36 md:h-44">
+          <div className="relative flex h-36 sm:h-44 md:h-52">
             {Array.from({ length: WHITE_COUNT }).map((_, i) => {
               const id = `w${i}`;
               const on = activeKey === id;
