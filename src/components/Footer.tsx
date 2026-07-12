@@ -2,9 +2,11 @@
 
 import { Mail } from "lucide-react";
 import { Reveal } from "@/components/motion/Reveal";
-import { site } from "@/content/site";
+import { useSite, useLanguage } from "@/content/LanguageContext";
 
 export function Footer() {
+  const site = useSite();
+  const { locale } = useLanguage();
   const { contact, artiste } = site;
   const annee = new Date().getFullYear();
 
@@ -35,16 +37,23 @@ export function Footer() {
 
         {/* Réseaux */}
         <Reveal delay={0.1}>
-          <ul className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          <ul className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
             {contact.reseaux.map((r) => (
               <li key={r.label}>
                 <a
                   href={r.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm uppercase tracking-[0.2em] text-ink-soft transition-colors hover:text-gold"
+                  aria-label={r.label}
+                  className="group inline-flex items-center gap-2 text-ink-soft transition-colors hover:text-gold"
                 >
-                  {r.label}
+                  {r.label === "YouTube" ? (
+                    <YouTubeLogo />
+                  ) : (
+                    <span className="text-sm uppercase tracking-[0.2em]">
+                      {r.label}
+                    </span>
+                  )}
                 </a>
               </li>
             ))}
@@ -57,10 +66,31 @@ export function Footer() {
             {artiste.nom}
           </span>
           <span>
-            © {annee} {artiste.nom}. Tous droits réservés.
+            © {annee} {artiste.nom}.{" "}
+            {locale === "en" ? "All rights reserved." : "Tous droits réservés."}
           </span>
         </div>
       </div>
     </footer>
+  );
+}
+
+/* Logo YouTube officiel (badge rouge) — devient plus lumineux au survol */
+function YouTubeLogo() {
+  return (
+    <svg
+      viewBox="0 0 28 20"
+      width="34"
+      height="24"
+      role="img"
+      aria-hidden
+      className="transition-transform duration-300 group-hover:scale-105"
+    >
+      <path
+        fill="#FF0033"
+        d="M27.4 3.1a3.5 3.5 0 0 0-2.46-2.48C22.77 0 14 0 14 0S5.23 0 3.06.62A3.5 3.5 0 0 0 .6 3.1 36.5 36.5 0 0 0 0 10a36.5 36.5 0 0 0 .6 6.9 3.5 3.5 0 0 0 2.46 2.48C5.23 20 14 20 14 20s8.77 0 10.94-.62a3.5 3.5 0 0 0 2.46-2.48A36.5 36.5 0 0 0 28 10a36.5 36.5 0 0 0-.6-6.9Z"
+      />
+      <path fill="#fff" d="M11.2 14.3 18.5 10l-7.3-4.3v8.6Z" />
+    </svg>
   );
 }

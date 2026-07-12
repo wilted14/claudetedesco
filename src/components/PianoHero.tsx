@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Play, Pause } from "lucide-react";
-import { site } from "@/content/site";
+import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
 
 /**
@@ -29,6 +29,8 @@ const blackKeys = [0, 1].flatMap((oct) =>
 );
 
 export function PianoHero() {
+  const site = useSite();
+  const { locale } = useLanguage();
   const reduce = useReducedMotion();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastIndex = useRef(-1);
@@ -36,6 +38,9 @@ export function PianoHero() {
   const [nowPlaying, setNowPlaying] = useState<Flat | null>(null);
   const [playing, setPlaying] = useState(false);
   const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  const playKeyLabel =
+    locale === "en" ? "Play a random track" : "Jouer un morceau au hasard";
 
   const tracks = useMemo<Flat[]>(
     () =>
@@ -46,7 +51,7 @@ export function PianoHero() {
           src: p.src,
         })),
       ),
-    [],
+    [site],
   );
 
   const playRandom = (keyId: string) => {
@@ -108,7 +113,7 @@ export function PianoHero() {
                 <button
                   key={id}
                   type="button"
-                  aria-label="Jouer un morceau au hasard"
+                  aria-label={playKeyLabel}
                   onClick={() => playRandom(id)}
                   className={`relative h-full flex-1 border-l border-black/15 transition-[transform,filter] duration-100 first:border-l-0 active:translate-y-[3px] ${
                     on
@@ -163,7 +168,15 @@ export function PianoHero() {
             <button
               type="button"
               onClick={togglePause}
-              aria-label={playing ? "Mettre la musique en pause" : "Reprendre la musique"}
+              aria-label={
+                playing
+                  ? locale === "en"
+                    ? "Pause the music"
+                    : "Mettre la musique en pause"
+                  : locale === "en"
+                    ? "Resume the music"
+                    : "Reprendre la musique"
+              }
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/60 bg-gold/10 text-gold shadow-[0_0_20px_-8px_rgba(198,166,100,0.8)] transition-all duration-300 hover:bg-gold hover:text-bg hover:shadow-[0_0_24px_-6px_rgba(198,166,100,0.9)]"
             >
               {playing ? (
@@ -180,7 +193,9 @@ export function PianoHero() {
           </>
         ) : (
           <span className="text-ink-mute">
-            Touchez une note — laissez le hasard choisir un morceau
+            {locale === "en"
+              ? "Touch a key — let chance pick a track"
+              : "Touchez une note — laissez le hasard choisir un morceau"}
           </span>
         )}
       </div>

@@ -4,10 +4,40 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, Music2, Film } from "lucide-react";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
-import { site } from "@/content/site";
+import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
 
+const UI = {
+  fr: {
+    listenWatch: "Écouter & regarder",
+    recordings: "Enregistrements",
+    videos: "Vidéos",
+    unavailable: "indisponible",
+    videoUnavailable: "Vidéo indisponible",
+    youtubeChannel: "Chaîne YouTube",
+    seeAllVideos: "Voir toutes les vidéos",
+    collections: "Collections",
+    pause: "Mettre en pause",
+    play: "Lire",
+  },
+  en: {
+    listenWatch: "Listen & watch",
+    recordings: "Recordings",
+    videos: "Videos",
+    unavailable: "unavailable",
+    videoUnavailable: "Video unavailable",
+    youtubeChannel: "YouTube Channel",
+    seeAllVideos: "See all videos",
+    collections: "Collections",
+    pause: "Pause",
+    play: "Play",
+  },
+} as const;
+
 export function Medias() {
+  const site = useSite();
+  const { locale } = useLanguage();
+  const ui = UI[locale];
   const { medias } = site;
 
   return (
@@ -18,7 +48,7 @@ export function Medias() {
       <div className="mx-auto max-w-[var(--max)] px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="mb-4 text-xs uppercase tracking-[0.3em] text-gold">
-            Écouter &amp; regarder
+            {ui.listenWatch}
           </p>
           <h2 className="font-serif text-4xl font-light text-ink md:text-5xl">
             {medias.titre}
@@ -27,32 +57,16 @@ export function Medias() {
           <p className="mt-6 text-ink-soft">{medias.intro}</p>
         </Reveal>
 
-        {/* Lecteur Spotify officiel */}
-        <Reveal className="mt-14">
-          <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-[0_20px_60px_-30px_rgba(0,0,0,0.8)]">
-            <iframe
-              title="Claude Tedesco sur Spotify"
-              src={`https://open.spotify.com/embed/artist/${medias.spotifyArtistId}?utm_source=generator&theme=0`}
-              width="100%"
-              height="352"
-              loading="lazy"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              className="block"
-            />
-          </div>
-        </Reveal>
-
         {/* Enregistrements, organisés par collection */}
         {medias.collections.length > 0 && (
-          <div className="mt-16">
+          <div className="mt-16 md:mt-20">
             <div className="mb-8 flex items-center gap-2 text-ink-mute">
               <Music2 size={16} className="text-gold" />
               <span className="text-xs uppercase tracking-[0.2em]">
-                Enregistrements
+                {ui.recordings}
               </span>
             </div>
-            <AudioCollections collections={medias.collections} />
+            <AudioCollections collections={medias.collections} ui={ui} />
           </div>
         )}
 
@@ -60,16 +74,18 @@ export function Medias() {
         <div className="mt-16">
           <div className="mb-6 flex items-center gap-2 text-ink-mute">
             <Film size={16} className="text-gold" />
-            <span className="text-xs uppercase tracking-[0.2em]">Vidéos</span>
+            <span className="text-xs uppercase tracking-[0.2em]">
+              {ui.videos}
+            </span>
           </div>
           <RevealStagger className="grid gap-6 md:grid-cols-2">
             {medias.video.map((v, i) => (
               <RevealItem key={i}>
-                <VideoLocal {...v} />
+                <VideoLocal {...v} ui={ui} />
               </RevealItem>
             ))}
             <RevealItem>
-              <YouTubeCard href={medias.youtubeChannel} />
+              <YouTubeCard href={medias.youtubeChannel} ui={ui} />
             </RevealItem>
           </RevealStagger>
         </div>
@@ -77,6 +93,8 @@ export function Medias() {
     </section>
   );
 }
+
+type Ui = Record<keyof (typeof UI)["fr"], string>;
 
 /* --------------------------- Lecteur audio -------------------------------- */
 
@@ -90,7 +108,13 @@ type Collection = { titre: string; sousTitre?: string; pistes: Piste[] };
  * l'onglet en cours de lecture affiche un point doré. Lecture optimiste :
  * « indisponible » seulement si le fichier échoue réellement (fiable iOS).
  */
-function AudioCollections({ collections }: { collections: Collection[] }) {
+function AudioCollections({
+  collections,
+  ui,
+}: {
+  collections: Collection[];
+  ui: Ui;
+}) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [active, setActive] = useState(0);
   const [current, setCurrent] = useState<string | null>(null);
@@ -144,7 +168,7 @@ function AudioCollections({ collections }: { collections: Collection[] }) {
       {/* Onglets horizontaux (défilables sur mobile) */}
       <div
         role="tablist"
-        aria-label="Collections"
+        aria-label={ui.collections}
         className="-mx-1 flex gap-1 overflow-x-auto border-b border-line px-1 [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {collections.map((cc, c) => {
@@ -209,7 +233,7 @@ function AudioCollections({ collections }: { collections: Collection[] }) {
                   type="button"
                   onClick={() => toggle(id, t.src)}
                   disabled={failed}
-                  aria-label={`${isPlaying ? "Mettre en pause" : "Lire"} ${t.titre}`}
+                  aria-label={`${isPlaying ? ui.pause : ui.play} ${t.titre}`}
                   className={`group flex w-full items-center gap-4 border-b border-line px-5 py-3.5 text-left transition-colors last:border-b-0 ${
                     failed ? "cursor-default" : "hover:bg-surface"
                   } ${isActive ? "bg-surface" : ""}`}
@@ -250,7 +274,7 @@ function AudioCollections({ collections }: { collections: Collection[] }) {
                     </span>
                     {failed && (
                       <span className="block truncate text-sm text-ink-mute">
-                        indisponible
+                        {ui.unavailable}
                       </span>
                     )}
                   </span>
@@ -285,11 +309,13 @@ function VideoLocal({
   sousTitre,
   src,
   poster,
+  ui,
 }: {
   titre: string;
   sousTitre: string;
   src: string;
   poster?: string;
+  ui: Ui;
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -317,7 +343,7 @@ function VideoLocal({
             <div className="absolute inset-0 bg-bg/70" />
             <Film size={26} className="relative text-line-strong" />
             <span className="relative text-xs uppercase tracking-[0.2em]">
-              Vidéo indisponible
+              {ui.videoUnavailable}
             </span>
           </div>
         )}
@@ -334,7 +360,7 @@ function VideoLocal({
 
 /* --------------------------- Carte chaîne YouTube ------------------------- */
 
-function YouTubeCard({ href }: { href: string }) {
+function YouTubeCard({ href, ui }: { href: string; ui: Ui }) {
   return (
     <a
       href={href}
@@ -345,9 +371,9 @@ function YouTubeCard({ href }: { href: string }) {
       <span className="flex h-14 w-14 items-center justify-center rounded-full border border-line-strong text-gold transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-bg">
         <Film size={26} />
       </span>
-      <span className="font-serif text-xl text-ink">Chaîne YouTube</span>
+      <span className="font-serif text-xl text-ink">{ui.youtubeChannel}</span>
       <span className="inline-flex items-center gap-1 text-sm text-ink-soft transition-colors group-hover:text-gold">
-        Voir toutes les vidéos <span aria-hidden>↗</span>
+        {ui.seeAllVideos} <span aria-hidden>↗</span>
       </span>
     </a>
   );

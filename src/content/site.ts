@@ -69,17 +69,23 @@ export const site = {
   galerie: {
     titre: "Galerie",
     intro: "Instants de scène et de studio.",
-    // Ajoutez autant de photos que souhaité. `position` = cadrage (object-position).
+    // Galerie en mosaïque : chaque photo garde ses proportions naturelles.
     photos: [
-      { src: `${MEDIA}/photo1.jpg`, alt: "Claude Tedesco au piano, en tenue de concert", position: "center" },
-      { src: `${MEDIA}/up2five.jpg`, alt: "Le groupe Up2Five en studio", position: "center 40%" },
-      { src: `${MEDIA}/claude-piano-rouge.jpg`, alt: "Claude Tedesco devant son piano à queue", position: "center 30%" },
-      { src: `${MEDIA}/claude-violon.jpg`, alt: "Claude Tedesco au violon", position: "center" },
-      { src: `${MEDIA}/photo2.jpg`, alt: "Les mains de Claude Tedesco sur le clavier", position: "center" },
-      { src: `${MEDIA}/studio-enregistrement.jpg`, alt: "Claude Tedesco dirigeant une session d'enregistrement", position: "center 30%" },
-      { src: `${MEDIA}/mains-clavier-rouge.jpg`, alt: "Mains sur le clavier en lumière rouge", position: "center" },
-      { src: `${MEDIA}/photo3.jpg`, alt: "Claude Tedesco au piano, de profil", position: "center" },
-      { src: `${MEDIA}/claude-profil.jpg`, alt: "Portrait de Claude Tedesco en contre-jour", position: "72% 38%" },
+      { src: `${MEDIA}/claude-chant.jpg`, alt: "Claude Tedesco au chant, micro à la main sur scène" },
+      { src: `${MEDIA}/claude-piano-sourire.jpg`, alt: "Claude Tedesco souriant au piano, partition ouverte" },
+      { src: `${MEDIA}/claude-violon-solo.jpg`, alt: "Claude Tedesco au violon, en pleine interprétation" },
+      { src: `${MEDIA}/jazz-a-juan-piano.jpg`, alt: "Claude Tedesco au piano au festival Jazz à Juan" },
+      { src: `${MEDIA}/photo1.jpg`, alt: "Claude Tedesco au piano, en tenue de concert" },
+      { src: `${MEDIA}/violon-scene-verte.jpg`, alt: "Claude Tedesco au violon sous les lumières de scène" },
+      { src: `${MEDIA}/claude-piano-rouge.jpg`, alt: "Claude Tedesco devant son piano à queue" },
+      { src: `${MEDIA}/violon-duo-chant.jpg`, alt: "Claude Tedesco au violon aux côtés d'un chanteur" },
+      { src: `${MEDIA}/up2five.jpg`, alt: "Le groupe Up2Five en studio" },
+      { src: `${MEDIA}/festival-jazz.jpg`, alt: "Claude Tedesco en concert avec son ensemble" },
+      { src: `${MEDIA}/studio-enregistrement.jpg`, alt: "Claude Tedesco dirigeant une session d'enregistrement" },
+      { src: `${MEDIA}/claude-violon.jpg`, alt: "Claude Tedesco au violon" },
+      { src: `${MEDIA}/photo3.jpg`, alt: "Claude Tedesco au piano, de profil" },
+      { src: `${MEDIA}/mains-clavier-rouge.jpg`, alt: "Mains sur le clavier en lumière rouge" },
+      { src: `${MEDIA}/claude-profil.jpg`, alt: "Portrait de Claude Tedesco en contre-jour" },
     ],
   },
 
@@ -118,11 +124,6 @@ export const site = {
   medias: {
     titre: "Médias",
     intro: "Écoutez la musique de Claude Tedesco et découvrez ses captations.",
-
-    // Lecteur Spotify officiel (identifiant de l'artiste)
-    spotifyArtistId: "5ChmyF1x4wCGdqsO8vzk6t",
-    spotifyUrl:
-      "https://open.spotify.com/intl-fr/artist/5ChmyF1x4wCGdqsO8vzk6t",
 
     // Chaîne YouTube officielle
     youtubeChannel: "https://www.youtube.com/@claudetedesco1496",
@@ -200,6 +201,12 @@ export const site = {
     // Vidéos (captations & clips)
     video: [
       {
+        titre: "New Sympho",
+        sousTitre: "Séance d'enregistrement",
+        src: `${MEDIA}/enregistrement-studio.mp4`,
+        poster: `${MEDIA}/enregistrement-studio.jpg`,
+      },
+      {
         titre: "Minor Swing",
         sousTitre: "Jazz manouche · violon",
         src: `${MEDIA}/minor-swing.mp4`,
@@ -238,13 +245,10 @@ export const site = {
     intro: "Pour les concerts, la presse et les collaborations.",
     email: "claudetedesco06@gmail.com",
     reseaux: [
-      {
-        label: "Spotify",
-        href: "https://open.spotify.com/intl-fr/artist/5ChmyF1x4wCGdqsO8vzk6t",
-      },
       { label: "YouTube", href: "https://www.youtube.com/@claudetedesco1496" },
     ],
   },
 };
 
 export type Site = typeof site;
+export type Locale = "fr" | "en";

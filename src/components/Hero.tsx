@@ -9,12 +9,13 @@ import {
   useReducedMotion,
   type Variants,
 } from "framer-motion";
-import { site } from "@/content/site";
+import { useSite } from "@/content/LanguageContext";
 import { PianoMotif } from "@/components/PianoMotif";
 import { PianoHero } from "@/components/PianoHero";
 import { asset } from "@/lib/asset";
 
 export function Hero() {
+  const site = useSite();
   const reduce = useReducedMotion();
   const { nom } = site.artiste;
   const words = nom.split(" ");

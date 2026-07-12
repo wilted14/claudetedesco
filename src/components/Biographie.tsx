@@ -3,10 +3,12 @@
 import Image from "next/image";
 import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/TiltCard";
-import { site } from "@/content/site";
+import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
 
 export function Biographie() {
+  const site = useSite();
+  const { locale } = useLanguage();
   const { bio, artiste } = site;
 
   return (
@@ -49,7 +51,7 @@ export function Biographie() {
         <div>
           <Reveal>
             <p className="mb-4 text-xs uppercase tracking-[0.3em] text-gold">
-              À propos
+              {locale === "en" ? "About" : "À propos"}
             </p>
             <h2 className="font-serif text-4xl font-light text-ink md:text-5xl">
               {bio.titre}

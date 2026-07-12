@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import { site } from "@/content/site";
+import { useSite, useLanguage } from "@/content/LanguageContext";
 
 export function Nav() {
+  const site = useSite();
+  const { locale, setLocale } = useLanguage();
   const reduce = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -53,30 +55,36 @@ export function Nav() {
         </a>
 
         {/* Liens — bureau */}
-        <ul className="hidden items-center gap-9 md:flex">
-          {site.nav.map((item) => (
-            <li key={item.href}>
-              <a
-                href={item.href}
-                className="group relative text-sm text-ink-soft transition-colors hover:text-ink"
-              >
-                {item.label}
-                <span className="absolute -bottom-1.5 left-0 h-px w-0 bg-gold transition-all duration-300 group-hover:w-full" />
-              </a>
-            </li>
-          ))}
-        </ul>
+        <div className="hidden items-center gap-9 md:flex">
+          <ul className="flex items-center gap-9">
+            {site.nav.map((item) => (
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  className="group relative text-sm text-ink-soft transition-colors hover:text-ink"
+                >
+                  {item.label}
+                  <span className="absolute -bottom-1.5 left-0 h-px w-0 bg-gold transition-all duration-300 group-hover:w-full" />
+                </a>
+              </li>
+            ))}
+          </ul>
+          <LanguageToggle locale={locale} setLocale={setLocale} />
+        </div>
 
-        {/* Bouton menu — mobile */}
-        <button
-          type="button"
-          aria-label={open ? "Fermer le menu" : "Ouvrir le menu"}
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="flex h-11 w-11 items-center justify-center text-ink md:hidden"
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Mobile : langue + bouton menu */}
+        <div className="flex items-center gap-2 md:hidden">
+          <LanguageToggle locale={locale} setLocale={setLocale} />
+          <button
+            type="button"
+            aria-label={open ? (locale === "en" ? "Close menu" : "Fermer le menu") : (locale === "en" ? "Open menu" : "Ouvrir le menu")}
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="flex h-11 w-11 items-center justify-center text-ink"
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </nav>
 
       {/* Panneau mobile */}
@@ -111,5 +119,49 @@ export function Nav() {
         )}
       </AnimatePresence>
     </motion.header>
+  );
+}
+
+/* Sélecteur de langue — discret, pastille à curseur doré coulissant */
+function LanguageToggle({
+  locale,
+  setLocale,
+}: {
+  locale: "fr" | "en";
+  setLocale: (l: "fr" | "en") => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Langue / Language"
+      className="relative flex h-7 items-center rounded-full border border-line-strong bg-surface/60 p-0.5 text-[0.65rem] font-medium uppercase tracking-wider"
+    >
+      <motion.span
+        aria-hidden
+        className="absolute inset-y-0.5 w-7 rounded-full bg-gold"
+        animate={{ x: locale === "fr" ? 0 : 28 }}
+        transition={{ type: "spring", stiffness: 500, damping: 32 }}
+      />
+      <button
+        type="button"
+        onClick={() => setLocale("fr")}
+        aria-pressed={locale === "fr"}
+        className={`relative z-10 flex h-6 w-7 items-center justify-center rounded-full transition-colors duration-200 ${
+          locale === "fr" ? "text-bg" : "text-ink-mute hover:text-ink"
+        }`}
+      >
+        FR
+      </button>
+      <button
+        type="button"
+        onClick={() => setLocale("en")}
+        aria-pressed={locale === "en"}
+        className={`relative z-10 flex h-6 w-7 items-center justify-center rounded-full transition-colors duration-200 ${
+          locale === "en" ? "text-bg" : "text-ink-mute hover:text-ink"
+        }`}
+      >
+        EN
+      </button>
+    </div>
   );
 }

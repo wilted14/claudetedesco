@@ -1,16 +1,33 @@
 "use client";
 
 import { useState, useEffect, useRef, type PointerEvent } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/TiltCard";
 import { FlipCard } from "@/components/FlipCard";
-import { site } from "@/content/site";
+import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
 
 export function Galerie() {
+  const site = useSite();
+  const { locale } = useLanguage();
   const { galerie } = site;
+  const t =
+    locale === "en"
+      ? {
+          inImages: "In pictures",
+          discography: "Discography",
+          enlarge: "Enlarge",
+          coverOf: "Cover of the album",
+          close: "Close",
+        }
+      : {
+          inImages: "En images",
+          discography: "Discographie",
+          enlarge: "Agrandir",
+          coverOf: "Pochette de l'album",
+          close: "Fermer",
+        };
   const reduce = useReducedMotion();
   const [open, setOpen] = useState<number | null>(null);
 
@@ -89,7 +106,7 @@ export function Galerie() {
       <div className="mx-auto max-w-[var(--max)] px-6">
         <Reveal className="mx-auto max-w-2xl text-center">
           <p className="mb-4 text-xs uppercase tracking-[0.3em] text-gold">
-            En images
+            {t.inImages}
           </p>
           <h2 className="font-serif text-4xl font-light text-ink md:text-5xl">
             {galerie.titre}
@@ -98,39 +115,30 @@ export function Galerie() {
           <p className="mt-6 text-ink-soft">{galerie.intro}</p>
         </Reveal>
 
-        {/* Grille */}
-        <div className="mt-14 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        {/* Mosaïque : colonnes fluides, chaque photo garde ses proportions */}
+        <div className="mt-14 columns-2 gap-3 sm:gap-4 md:columns-3 lg:columns-3">
           {galerie.photos.map((photo, i) => (
             <Reveal
               key={i}
-              delay={i * 0.06}
-              className={
-                // Première photo mise en avant sur grand écran
-                i === 0 ? "md:col-span-2 md:row-span-2" : ""
-              }
+              delay={(i % 6) * 0.05}
+              className="mb-3 break-inside-avoid sm:mb-4"
             >
               <TiltCard
-                className={`relative w-full overflow-hidden rounded-sm border border-line bg-surface ${
-                  i === 0 ? "aspect-[4/3] md:h-full" : "aspect-[4/5]"
-                }`}
-                max={10}
+                className="relative w-full overflow-hidden rounded-sm border border-line bg-surface"
+                max={8}
               >
                 <button
                   type="button"
                   onClick={() => setOpen(i)}
-                  aria-label={`Agrandir : ${photo.alt}`}
-                  className="block h-full w-full"
+                  aria-label={`${t.enlarge}: ${photo.alt}`}
+                  className="block w-full"
                 >
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={asset(photo.src)}
                     alt={photo.alt}
-                    fill
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                    className="object-cover"
-                    style={{
-                      objectPosition:
-                        (photo as { position?: string }).position ?? "center",
-                    }}
+                    loading="lazy"
+                    className="block h-auto w-full object-cover"
                   />
                 </button>
               </TiltCard>
@@ -142,7 +150,7 @@ export function Galerie() {
         <div className="mt-24 md:mt-32">
           <Reveal className="mx-auto max-w-2xl text-center">
             <p className="mb-4 text-xs uppercase tracking-[0.3em] text-gold">
-              Discographie
+              {t.discography}
             </p>
             <h3 className="font-serif text-3xl font-light text-ink md:text-4xl">
               {site.albums.titre}
@@ -157,7 +165,7 @@ export function Galerie() {
                 <FlipCard
                   recto={asset(album.recto)}
                   verso={album.verso ? asset(album.verso) : undefined}
-                  alt={`Pochette de l'album ${album.titre}`}
+                  alt={`${t.coverOf} ${album.titre}`}
                   className="aspect-square w-full"
                 />
                 <div className="mt-4 flex items-baseline justify-between gap-3 px-1">
@@ -225,12 +233,12 @@ export function Galerie() {
                   coin, ne tremble pas, toujours cliquable. */}
               <button
                 type="button"
-                aria-label="Fermer la photo"
+                aria-label={t.close}
                 onClick={() => setOpen(null)}
                 className="absolute right-2 top-2 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-colors duration-200 hover:bg-gold-bright md:h-14 md:w-14"
               >
                 <NoteIcon />
-                <span className="sr-only">Fermer</span>
+                <span className="sr-only">{t.close}</span>
               </button>
             </div>
           </motion.div>
