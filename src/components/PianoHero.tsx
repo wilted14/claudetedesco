@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Play, Pause } from "lucide-react";
 import { site } from "@/content/site";
 import { asset } from "@/lib/asset";
 
@@ -154,19 +155,29 @@ export function PianoHero() {
         </div>
       </div>
 
-      {/* En écoute */}
-      <div className="mt-5 flex h-6 items-center justify-center gap-3 text-sm">
+      {/* En écoute + bouton pause stylisé */}
+      <div className="mt-5 flex min-h-9 items-center justify-center gap-3 text-sm">
         {nowPlaying ? (
-          <button
-            type="button"
-            onClick={togglePause}
-            className="group inline-flex items-center gap-2.5 text-ink-soft transition-colors hover:text-gold"
-            aria-label={playing ? "Mettre en pause" : "Reprendre"}
-          >
+          <>
+            {/* Bouton pause / reprise — pastille dorée */}
+            <button
+              type="button"
+              onClick={togglePause}
+              aria-label={playing ? "Mettre la musique en pause" : "Reprendre la musique"}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gold/60 bg-gold/10 text-gold shadow-[0_0_20px_-8px_rgba(198,166,100,0.8)] transition-all duration-300 hover:bg-gold hover:text-bg hover:shadow-[0_0_24px_-6px_rgba(198,166,100,0.9)]"
+            >
+              {playing ? (
+                <Pause size={15} />
+              ) : (
+                <Play size={15} className="ml-0.5" />
+              )}
+            </button>
             <Equalizer playing={playing} reduce={reduce} />
-            <span className="text-ink">{nowPlaying.titre}</span>
-            <span className="text-ink-mute">· {nowPlaying.collection}</span>
-          </button>
+            <span className="min-w-0 truncate">
+              <span className="text-ink">{nowPlaying.titre}</span>
+              <span className="text-ink-mute"> · {nowPlaying.collection}</span>
+            </span>
+          </>
         ) : (
           <span className="text-ink-mute">
             Touchez une note — laissez le hasard choisir un morceau
