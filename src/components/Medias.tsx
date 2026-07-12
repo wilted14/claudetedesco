@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { Play, Pause, Music2, Film } from "lucide-react";
-import { Reveal, RevealStagger, RevealItem } from "@/components/motion/Reveal";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Play, Pause, Music2, Film, X } from "lucide-react";
+import { Reveal } from "@/components/motion/Reveal";
 import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
 
@@ -19,6 +19,7 @@ const UI = {
     collections: "Collections",
     pause: "Mettre en pause",
     play: "Lire",
+    close: "Fermer",
   },
   en: {
     listenWatch: "Listen & watch",
@@ -31,6 +32,7 @@ const UI = {
     collections: "Collections",
     pause: "Pause",
     play: "Play",
+    close: "Close",
   },
 } as const;
 
@@ -71,23 +73,18 @@ export function Medias() {
         )}
 
         {/* Vidéos */}
-        <div className="mt-16">
+        <div className="mt-16 md:mt-20">
           <div className="mb-6 flex items-center gap-2 text-ink-mute">
             <Film size={16} className="text-gold" />
             <span className="text-xs uppercase tracking-[0.2em]">
               {ui.videos}
             </span>
           </div>
-          <RevealStagger className="grid gap-6 md:grid-cols-2">
-            {medias.video.map((v, i) => (
-              <RevealItem key={i}>
-                <VideoLocal {...v} ui={ui} />
-              </RevealItem>
-            ))}
-            <RevealItem>
-              <YouTubeCard href={medias.youtubeChannel} ui={ui} />
-            </RevealItem>
-          </RevealStagger>
+          <VideoGallery
+            videos={medias.video}
+            youtube={medias.youtubeChannel}
+            ui={ui}
+          />
         </div>
       </div>
     </section>
@@ -302,79 +299,156 @@ function AudioCollections({
   );
 }
 
-/* ----------------------------- Vidéo locale ------------------------------- */
+/* ----------------------------- Galerie vidéos ----------------------------- */
 
-function VideoLocal({
-  titre,
-  sousTitre,
-  src,
-  poster,
-  ui,
-}: {
+type Video = {
   titre: string;
   sousTitre: string;
   src: string;
   poster?: string;
+};
+
+/**
+ * Grille de vignettes uniformes (poster + bouton lecture), même langage visuel
+ * que la galerie photos : épuré, pas de lecteurs empilés. Un clic ouvre la
+ * vidéo en plein écran dans une modale. La chaîne YouTube ferme la grille.
+ */
+function VideoGallery({
+  videos,
+  youtube,
+  ui,
+}: {
+  videos: Video[];
+  youtube: string;
   ui: Ui;
 }) {
-  const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (open === null) return;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const active = open !== null ? videos[open] : null;
 
   return (
-    <figure className="overflow-hidden rounded-sm border border-line bg-surface">
-      <div className="relative aspect-video w-full bg-bg-soft">
-        {!failed ? (
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            poster={poster ? asset(poster) : undefined}
-            onError={() => setFailed(true)}
-            className="absolute inset-0 h-full w-full object-cover"
+    <>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3">
+        {videos.map((v, i) => (
+          <Reveal key={i} delay={(i % 3) * 0.05}>
+            <button
+              type="button"
+              onClick={() => setOpen(i)}
+              aria-label={`${ui.play} — ${v.titre}`}
+              className="group relative block aspect-video w-full overflow-hidden bg-surface text-left"
+            >
+              {v.poster && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={asset(v.poster)}
+                  alt={v.titre}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]"
+                />
+              )}
+              {/* Voile pour lisibilité du titre */}
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg/85 via-bg/10 to-transparent" />
+              <span className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-gold/0 transition-all duration-500 group-hover:ring-gold/50" />
+
+              {/* Bouton lecture central */}
+              <span className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-bg/40 text-ink backdrop-blur-sm transition-all duration-300 group-hover:border-gold group-hover:bg-gold group-hover:text-bg">
+                <Play size={20} className="ml-0.5" />
+              </span>
+
+              {/* Titre + sous-titre en bas */}
+              <span className="absolute inset-x-0 bottom-0 flex items-baseline justify-between gap-3 p-4">
+                <span className="min-w-0 truncate font-serif text-lg text-ink">
+                  {v.titre}
+                </span>
+                <span className="shrink-0 text-xs uppercase tracking-[0.15em] text-ink-mute">
+                  {v.sousTitre}
+                </span>
+              </span>
+            </button>
+          </Reveal>
+        ))}
+
+        {/* Carte chaîne YouTube — même format de cellule */}
+        <Reveal delay={0.05}>
+          <a
+            href={youtube}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative flex aspect-video w-full flex-col items-center justify-center gap-3 bg-surface p-6 text-center ring-1 ring-inset ring-line transition-all duration-500 hover:ring-gold/50"
           >
-            <source src={asset(src)} type="video/mp4" />
-          </video>
-        ) : (
-          <div
-            className="flex h-full w-full flex-col items-center justify-center gap-3 bg-cover bg-center text-ink-mute"
-            style={
-              poster ? { backgroundImage: `url("${asset(poster)}")` } : undefined
-            }
-          >
-            <div className="absolute inset-0 bg-bg/70" />
-            <Film size={26} className="relative text-line-strong" />
-            <span className="relative text-xs uppercase tracking-[0.2em]">
-              {ui.videoUnavailable}
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-line-strong text-gold transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-bg">
+              <Film size={24} />
             </span>
-          </div>
-        )}
+            <span className="font-serif text-xl text-ink">
+              {ui.youtubeChannel}
+            </span>
+            <span className="inline-flex items-center gap-1 text-sm text-ink-soft transition-colors group-hover:text-gold">
+              {ui.seeAllVideos} <span aria-hidden>↗</span>
+            </span>
+          </a>
+        </Reveal>
       </div>
-      <figcaption className="flex items-baseline justify-between gap-4 px-5 py-4">
-        <span className="min-w-0 truncate font-serif text-lg text-ink">
-          {titre}
-        </span>
-        <span className="shrink-0 text-sm text-ink-mute">{sousTitre}</span>
-      </figcaption>
-    </figure>
-  );
-}
 
-/* --------------------------- Carte chaîne YouTube ------------------------- */
+      {/* Modale de lecture */}
+      <AnimatePresence>
+        {active && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 p-4 backdrop-blur-sm md:p-10"
+            onClick={() => setOpen(null)}
+          >
+            <div
+              className="relative w-full max-w-5xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <video
+                key={active.src}
+                controls
+                autoPlay
+                playsInline
+                poster={active.poster ? asset(active.poster) : undefined}
+                className="max-h-[82vh] w-full rounded-sm bg-black shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]"
+              >
+                <source src={asset(active.src)} type="video/mp4" />
+              </video>
 
-function YouTubeCard({ href, ui }: { href: string; ui: Ui }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex aspect-video flex-col items-center justify-center gap-4 rounded-sm border border-line bg-surface p-6 text-center transition-colors hover:border-gold"
-    >
-      <span className="flex h-14 w-14 items-center justify-center rounded-full border border-line-strong text-gold transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-bg">
-        <Film size={26} />
-      </span>
-      <span className="font-serif text-xl text-ink">{ui.youtubeChannel}</span>
-      <span className="inline-flex items-center gap-1 text-sm text-ink-soft transition-colors group-hover:text-gold">
-        {ui.seeAllVideos} <span aria-hidden>↗</span>
-      </span>
-    </a>
+              <div className="mt-4 flex items-baseline justify-between gap-4 px-1">
+                <span className="font-serif text-xl text-ink">
+                  {active.titre}
+                </span>
+                <span className="shrink-0 text-sm text-ink-mute">
+                  {active.sousTitre}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                aria-label={ui.close}
+                onClick={() => setOpen(null)}
+                className="absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center rounded-full bg-gold text-bg shadow-[0_8px_28px_-6px_rgba(198,166,100,0.75)] ring-1 ring-gold-bright/40 transition-colors duration-200 hover:bg-gold-bright md:h-12 md:w-12"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, type PointerEvent } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/motion/Reveal";
-import { TiltCard } from "@/components/TiltCard";
 import { FlipCard } from "@/components/FlipCard";
 import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
@@ -115,33 +114,27 @@ export function Galerie() {
           <p className="mt-6 text-ink-soft">{galerie.intro}</p>
         </Reveal>
 
-        {/* Mosaïque : colonnes fluides, chaque photo garde ses proportions */}
-        <div className="mt-14 columns-2 gap-3 sm:gap-4 md:columns-3 lg:columns-3">
+        {/* Grille uniforme « mur de galerie » : cellules carrées, épurée */}
+        <div className="mt-14 grid grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-3 lg:grid-cols-4">
           {galerie.photos.map((photo, i) => (
-            <Reveal
-              key={i}
-              delay={(i % 6) * 0.05}
-              className="mb-3 break-inside-avoid sm:mb-4"
-            >
-              <TiltCard
-                className="relative w-full overflow-hidden rounded-sm border border-line bg-surface"
-                max={8}
+            <Reveal key={i} delay={(i % 4) * 0.05}>
+              <button
+                type="button"
+                onClick={() => setOpen(i)}
+                aria-label={`${t.enlarge}: ${photo.alt}`}
+                className="group relative block aspect-square w-full overflow-hidden bg-surface"
               >
-                <button
-                  type="button"
-                  onClick={() => setOpen(i)}
-                  aria-label={`${t.enlarge}: ${photo.alt}`}
-                  className="block w-full"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={asset(photo.src)}
-                    alt={photo.alt}
-                    loading="lazy"
-                    className="block h-auto w-full object-cover"
-                  />
-                </button>
-              </TiltCard>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={asset(photo.src)}
+                  alt={photo.alt}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.07]"
+                />
+                {/* Voile sombre + liseré doré au survol */}
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg/50 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <span className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-gold/0 transition-all duration-500 group-hover:ring-gold/50" />
+              </button>
             </Reveal>
           ))}
         </div>
