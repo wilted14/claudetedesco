@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import { Play, Pause } from "lucide-react";
 import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
@@ -23,6 +29,9 @@ type Pt = [number, number];
 const VIDEO = "/images/piano-hero.mp4";
 const STILL_START = "/images/piano-hero-start.jpg";
 const STILL_END = "/images/piano-hero-end.jpg";
+// Masque des pixels « touche blanche » de l'image finale : les surbrillances
+// épousent ainsi la forme réelle de chaque touche (les noires la découpent).
+const KEYS_MASK = "/images/piano-hero-keys-mask.jpg";
 
 /* Repère de l'image finale (1280×720). u = le long du clavier, v = du fond
    (feutre rouge, v=0) vers le bord avant des touches blanches (v=1).
@@ -72,11 +81,40 @@ const KEYS = Array.from({ length: KEY_TO - KEY_FROM }, (_, n) => {
   const u0 = k / REF_KEYS;
   const u1 = (k + 1) / REF_KEYS;
   const um = (u0 + u1) / 2;
-  const pts = [project(u0, 0), project(u1, 0), project(u1, 1), project(u0, 1)];
+  const f0 = project(u0, 1); // bord avant, côté lointain
+  const f1 = project(u1, 1); // bord avant, côté proche
+  const edge = Math.hypot(f1[0] - f0[0], f1[1] - f0[1]);
+  const face = edge * 0.68; // hauteur visible de la face avant de la touche
+  const dip = edge * 0.2; // enfoncement du bord avant quand on appuie
+  const str = (pts: Pt[]) =>
+    pts.map((p) => p.map((c) => c.toFixed(1)).join(",")).join(" ");
+  const top: Pt[] = [project(u0, 0.02), project(u1, 0.02), f1, f0];
+  // dessus + face avant (prolongée de l'enfoncement) : zone de la touche
+  const body = (extra: number): Pt[] => [
+    project(u0, 0.02),
+    project(u1, 0.02),
+    f1,
+    [f1[0], f1[1] + face + extra],
+    [f0[0], f0[1] + face + extra],
+    f0,
+  ];
+  // La touche pivote à l'arrière : le déplacement vertical croît de 0 (fond)
+  // à `dip` (bord avant). C'est une transformation affine de l'image.
+  const front = project(um, 1);
+  const pivot = project(um, 0);
+  const ax = front[0] - pivot[0];
+  const ay = front[1] - pivot[1];
+  const len2 = ax * ax + ay * ay;
+  const nx = ax / len2;
+  const ny = ay / len2;
+  const pressed = `matrix(1, ${(dip * nx).toFixed(5)}, 0, ${(1 + dip * ny).toFixed(5)}, 0, ${(-dip * (pivot[0] * nx + pivot[1] * ny)).toFixed(3)})`;
   return {
     id: `k${n}`,
-    points: pts.map((p) => p.map((c) => c.toFixed(1)).join(",")).join(" "),
-    front: project(um, 1), // milieu du bord avant
+    points: str(top),
+    hit: str(body(0)),
+    clip: str(body(dip)),
+    pressed,
+    front, // milieu du bord avant
     back: project(um, 0.05),
     // point d'ancrage du titre, gardé à l'intérieur du cadre
     anchor: ((p: Pt): Pt => [
@@ -111,6 +149,38 @@ export function PianoHero() {
   const [playing, setPlaying] = useState(false);
   const reroll = useRef<number | null>(null);
 
+  // Touche enfoncée : `pressKey` garde la dernière touche pressée pour que
+  // l'animation de remontée puisse se jouer ; `down` = doigt/souris appuyé.
+  const [pressKey, setPressKey] = useState<number | null>(null);
+  const [down, setDown] = useState(false);
+  const downAt = useRef(0);
+  const releaseTimer = useRef<number | undefined>(undefined);
+
+  const pressDown = (key: number) => {
+    window.clearTimeout(releaseTimer.current);
+    // eslint-disable-next-line react-hooks/purity -- appelé dans un gestionnaire, pas au rendu
+    downAt.current = performance.now();
+    setPressKey(key);
+    setDown(true);
+  };
+  // On laisse la touche en bas au moins un instant, même sur un clic éclair
+  const pressUp = () => {
+    // eslint-disable-next-line react-hooks/purity -- appelé dans un gestionnaire, pas au rendu
+    const wait = Math.max(0, 170 - (performance.now() - downAt.current));
+    window.clearTimeout(releaseTimer.current);
+    releaseTimer.current = window.setTimeout(() => setDown(false), wait);
+  };
+  useEffect(() => () => window.clearTimeout(releaseTimer.current), []);
+
+  // Au défilement : le clavier bascule légèrement vers le spectateur, grossit,
+  // et un reflet doré balaie les touches.
+  const { scrollY } = useScroll();
+  const tilt = useTransform(scrollY, [0, 650], [0, 16]);
+  const zoom = useTransform(scrollY, [0, 650], [1, 1.1]);
+  const lift = useTransform(scrollY, [0, 650], [0, -36]);
+  const sheenX = useTransform(scrollY, [0, 650], ["-130%", "130%"]);
+  const sheenO = useTransform(scrollY, [0, 80, 520, 650], [0, 1, 1, 0]);
+
   const en = locale === "en";
 
   const tracks = useMemo<Flat[]>(
@@ -127,15 +197,13 @@ export function PianoHero() {
 
   // Tirage au sort côté client uniquement (pas d'écart d'hydratation)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- tirage aléatoire réservé au client
     setAssign(shuffled(tracks.length).slice(0, KEYS.length));
   }, [tracks.length]);
 
   // Lancement de la vidéo (après l'apparition du bloc), avec replis
   useEffect(() => {
-    if (reduce) {
-      setPhase("ready");
-      return;
-    }
+    if (reduce) return;
     const v = videoRef.current;
     if (!v) return;
     let started = false;
@@ -191,7 +259,15 @@ export function PianoHero() {
     else void audio.play();
   };
 
-  const ready = phase === "ready";
+  const ready = phase === "ready" || Boolean(reduce);
+  const glowCls = (i: number) =>
+    `transition-opacity ${
+      hovered === i
+        ? "opacity-100 duration-300"
+        : activeKey === i
+          ? "opacity-55 duration-700"
+          : "opacity-0 duration-700"
+    }`;
   const hoveredTrack = hovered !== null ? trackOf(hovered) : undefined;
 
   return (
@@ -206,7 +282,20 @@ export function PianoHero() {
         }}
       />
 
-      <div className="relative aspect-video w-full select-none">
+      <motion.div
+        className="relative aspect-video w-full select-none"
+        style={
+          reduce
+            ? undefined
+            : {
+                rotateX: tilt,
+                scale: zoom,
+                y: lift,
+                transformPerspective: 1100,
+                transformOrigin: "50% 100%",
+              }
+        }
+      >
         {/* Halo doré derrière le piano */}
         <div
           aria-hidden
@@ -268,6 +357,21 @@ export function PianoHero() {
               }
             >
               <defs>
+                <mask
+                  id="pk-whites"
+                  maskUnits="userSpaceOnUse"
+                  x="0"
+                  y="0"
+                  width={W}
+                  height={H}
+                >
+                  <image
+                    href={asset(KEYS_MASK)}
+                    width={W}
+                    height={H}
+                    preserveAspectRatio="none"
+                  />
+                </mask>
                 {KEYS.map((k) => (
                   <linearGradient
                     key={k.id}
@@ -278,21 +382,87 @@ export function PianoHero() {
                     x2={k.back[0]}
                     y2={k.back[1]}
                   >
-                    <stop offset="0" stopColor="#f3d590" stopOpacity="0.85" />
-                    <stop offset="0.45" stopColor="#c6a664" stopOpacity="0.5" />
-                    <stop offset="1" stopColor="#c6a664" stopOpacity="0" />
+                    <stop offset="0" stopColor="#f3d590" stopOpacity="0.8" />
+                    <stop offset="0.5" stopColor="#c6a664" stopOpacity="0.5" />
+                    <stop offset="1" stopColor="#c6a664" stopOpacity="0.12" />
                   </linearGradient>
                 ))}
+                {pressKey !== null && (
+                  <clipPath id="pk-press-clip">
+                    <polygon points={KEYS[pressKey].clip} />
+                  </clipPath>
+                )}
               </defs>
+
+              {/* Surbrillances dorées, découpées sur la forme réelle des touches */}
+              <g mask="url(#pk-whites)" style={{ pointerEvents: "none" }}>
+                {KEYS.map((k, i) =>
+                  i === pressKey ? null : (
+                    <polygon
+                      key={k.id}
+                      points={k.hit}
+                      fill={`url(#glow-${k.id})`}
+                      className={glowCls(i)}
+                    />
+                  ),
+                )}
+              </g>
+
+              {/* Touche enfoncée : sa portion d'image bascule vers le bas (pivot
+                  à l'arrière), dans l'ombre des touches voisines. */}
+              {pressKey !== null && (
+                <g
+                  clipPath="url(#pk-press-clip)"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <polygon
+                    points={KEYS[pressKey].clip}
+                    fill="#1c140a"
+                    mask="url(#pk-whites)"
+                    style={{
+                      opacity: down ? 0.82 : 0,
+                      transition: `opacity ${down ? 70 : 240}ms ease`,
+                    }}
+                  />
+                  <g
+                    style={{
+                      transform: down
+                        ? KEYS[pressKey].pressed
+                        : "matrix(1, 0, 0, 1, 0, 0)",
+                      transition: down
+                        ? "transform 85ms cubic-bezier(0.3, 0, 0.5, 1)"
+                        : "transform 280ms cubic-bezier(0.2, 0.9, 0.3, 1.25)",
+                    }}
+                  >
+                    <g mask="url(#pk-whites)">
+                      <image
+                        href={asset(STILL_END)}
+                        width={W}
+                        height={H}
+                        preserveAspectRatio="none"
+                        style={{
+                          filter: down ? "brightness(0.9)" : "brightness(1)",
+                          transition: "filter 160ms ease",
+                        }}
+                      />
+                      <polygon
+                        points={KEYS[pressKey].hit}
+                        fill={`url(#glow-${KEYS[pressKey].id})`}
+                        className={glowCls(pressKey)}
+                      />
+                    </g>
+                  </g>
+                </g>
+              )}
+
+              {/* Zones de survol / clic (invisibles) */}
               {KEYS.map((k, i) => {
                 const t = trackOf(i);
-                const lit = hovered === i;
-                const on = activeKey === i;
                 return (
                   <polygon
                     key={k.id}
-                    points={k.points}
-                    fill={`url(#glow-${k.id})`}
+                    points={k.hit}
+                    fill="transparent"
                     role="button"
                     tabIndex={0}
                     aria-label={
@@ -303,28 +473,44 @@ export function PianoHero() {
                           : "Écouter un morceau"
                     }
                     onPointerEnter={() => setHovered(i)}
-                    onPointerLeave={() => leaveKey(i)}
+                    onPointerLeave={() => {
+                      leaveKey(i);
+                      if (pressKey === i) pressUp();
+                    }}
+                    onPointerDown={() => pressDown(i)}
+                    onPointerUp={pressUp}
+                    onPointerCancel={pressUp}
                     onFocus={() => setHovered(i)}
                     onBlur={() => leaveKey(i)}
                     onClick={() => playKey(i)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
+                        pressDown(i);
+                        pressUp();
                         playKey(i);
                       }
                     }}
-                    className={`cursor-pointer outline-none transition-opacity ${
-                      lit
-                        ? "opacity-100 duration-300"
-                        : on
-                          ? "opacity-60 duration-700"
-                          : "opacity-0 duration-700"
-                    }`}
+                    className="cursor-pointer outline-none"
                     style={{ pointerEvents: "all" }}
                   />
                 );
               })}
             </svg>
+          )}
+
+          {/* Reflet doré qui balaie le clavier au défilement */}
+          {!reduce && (
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 w-full mix-blend-screen"
+              style={{
+                x: sheenX,
+                opacity: sheenO,
+                background:
+                  "linear-gradient(105deg, transparent 38%, rgba(255,226,160,0.28) 50%, transparent 62%)",
+              }}
+            />
           )}
         </div>
 
@@ -369,7 +555,7 @@ export function PianoHero() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {/* En écoute + bouton pause */}
       <div className="mt-3 flex min-h-9 items-center justify-center gap-3 text-sm">
