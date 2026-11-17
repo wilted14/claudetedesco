@@ -167,7 +167,7 @@ export function Hero() {
           variants={fade}
           initial="hidden"
           animate="visible"
-          className="mt-10 md:mt-12"
+          className="mt-4 md:mt-6"
         >
           <PianoHero />
         </motion.div>
@@ -178,7 +178,7 @@ export function Hero() {
           variants={fade}
           initial="hidden"
           animate="visible"
-          className="mt-11 flex flex-col items-center justify-center gap-4 sm:flex-row"
+          className="mt-7 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
           <a
             href={site.hero.ctaPrincipal.href}

@@ -1,46 +1,117 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Play, Pause } from "lucide-react";
 import { useSite, useLanguage } from "@/content/LanguageContext";
 import { asset } from "@/lib/asset";
 
 /**
- * Clavier de piano interactif (page d'accueil) : chaque touche — blanche ou
- * noire — lance un morceau AU HASARD parmi tous les enregistrements de la
- * médiathèque. Touches ivoire / laque noire, accent or, léger relief 3D.
- * Un seul <audio> ; la touche jouée reste éclairée. Respecte reduced-motion.
+ * Piano de la page d'accueil : une vidéo (travelling vers le clavier d'un piano
+ * à queue) se joue une fois, puis se fige sur son image finale — un gros plan
+ * des touches. Chaque touche devient alors interactive :
+ *   • survol  → la touche s'illumine d'or et le titre qu'elle cache apparaît,
+ *   • clic    → lance ce morceau (tiré au hasard dans tous les albums).
+ * Les touches sont vues en perspective : on les reconstruit par homographie
+ * (carré unité → quadrilatère du clavier dans l'image) et on les dessine en
+ * SVG, ce qui donne des zones de survol/clic exactes à toutes les tailles.
  */
 
 type Flat = { titre: string; collection: string; src: string };
+type Pt = [number, number];
 
-// 2 octaves : 14 touches blanches. Touches noires après les blanches d'index
-// 0,1,3,4,5 dans chaque octave (Do#, Ré#, Fa#, Sol#, La#).
-const WHITE_COUNT = 14;
-const BLACK_AFTER = [0, 1, 3, 4, 5];
-const WHITE_W = 100 / WHITE_COUNT;
+const VIDEO = "/images/piano-hero.mp4";
+const STILL_START = "/images/piano-hero-start.jpg";
+const STILL_END = "/images/piano-hero-end.jpg";
 
-const blackKeys = [0, 1].flatMap((oct) =>
-  BLACK_AFTER.map((p) => {
-    const whiteLeftIndex = oct * 7 + p;
-    return { id: `b${whiteLeftIndex}`, leftIndex: whiteLeftIndex };
-  }),
-);
+/* Repère de l'image finale (1280×720). u = le long du clavier, v = du fond
+   (feutre rouge, v=0) vers le bord avant des touches blanches (v=1).
+   Le quadrilatère couvre REF_KEYS touches blanches. */
+const W = 1280;
+const H = 720;
+const REF_KEYS = 5;
+const QUAD: [Pt, Pt, Pt, Pt] = [
+  [839, 302], // fond, côté lointain   (u=0, v=0)
+  [1201, 443], // fond, côté proche     (u=1, v=0)
+  [530, 625], // avant, côté proche    (u=1, v=1)
+  [258, 430], // avant, côté lointain  (u=0, v=1)
+];
+// Touches affichées : indices relatifs au quadrilatère de référence.
+const KEY_FROM = -5;
+const KEY_TO = 8;
+
+/** Homographie carré unité → quadrilatère (Heckbert). */
+function homography([p0, p1, p2, p3]: [Pt, Pt, Pt, Pt]) {
+  const [x0, y0] = p0;
+  const [x1, y1] = p1;
+  const [x2, y2] = p2;
+  const [x3, y3] = p3;
+  const dx1 = x1 - x2;
+  const dx2 = x3 - x2;
+  const dy1 = y1 - y2;
+  const dy2 = y3 - y2;
+  const sx = x0 - x1 + x2 - x3;
+  const sy = y0 - y1 + y2 - y3;
+  const den = dx1 * dy2 - dy1 * dx2;
+  const g = (sx * dy2 - dx2 * sy) / den;
+  const h = (dx1 * sy - sx * dy1) / den;
+  const a = x1 - x0 + g * x1;
+  const b = x3 - x0 + h * x3;
+  const d = y1 - y0 + g * y1;
+  const e = y3 - y0 + h * y3;
+  return (u: number, v: number): Pt => {
+    const w = g * u + h * v + 1;
+    return [(a * u + b * v + x0) / w, (d * u + e * v + y0) / w];
+  };
+}
+
+const project = homography(QUAD);
+
+const KEYS = Array.from({ length: KEY_TO - KEY_FROM }, (_, n) => {
+  const k = KEY_FROM + n;
+  const u0 = k / REF_KEYS;
+  const u1 = (k + 1) / REF_KEYS;
+  const um = (u0 + u1) / 2;
+  const pts = [project(u0, 0), project(u1, 0), project(u1, 1), project(u0, 1)];
+  return {
+    id: `k${n}`,
+    points: pts.map((p) => p.map((c) => c.toFixed(1)).join(",")).join(" "),
+    front: project(um, 1), // milieu du bord avant
+    back: project(um, 0.05),
+    // point d'ancrage du titre, gardé à l'intérieur du cadre
+    anchor: ((p: Pt): Pt => [
+      Math.min(W * 0.84, Math.max(W * 0.16, p[0])),
+      Math.min(H * 0.82, Math.max(H * 0.3, p[1])),
+    ])(project(um, 0.78)),
+  };
+});
+
+function shuffled(n: number) {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export function PianoHero() {
   const site = useSite();
   const { locale } = useLanguage();
   const reduce = useReducedMotion();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastIndex = useRef(-1);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // « intro » = la vidéo se joue ; « ready » = image finale, touches actives
+  const [phase, setPhase] = useState<"intro" | "ready">("intro");
+  const [assign, setAssign] = useState<number[]>([]); // morceau par touche
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [activeKey, setActiveKey] = useState<number | null>(null);
   const [nowPlaying, setNowPlaying] = useState<Flat | null>(null);
   const [playing, setPlaying] = useState(false);
-  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const reroll = useRef<number | null>(null);
 
-  const playKeyLabel =
-    locale === "en" ? "Play a random track" : "Jouer un morceau au hasard";
+  const en = locale === "en";
 
   const tracks = useMemo<Flat[]>(
     () =>
@@ -54,30 +125,77 @@ export function PianoHero() {
     [site],
   );
 
-  const playRandom = (keyId: string) => {
-    const audio = audioRef.current;
-    if (!audio || tracks.length === 0) return;
-    let idx = Math.floor(Math.random() * tracks.length);
-    if (tracks.length > 1) {
-      while (idx === lastIndex.current)
-        idx = Math.floor(Math.random() * tracks.length);
+  // Tirage au sort côté client uniquement (pas d'écart d'hydratation)
+  useEffect(() => {
+    setAssign(shuffled(tracks.length).slice(0, KEYS.length));
+  }, [tracks.length]);
+
+  // Lancement de la vidéo (après l'apparition du bloc), avec replis
+  useEffect(() => {
+    if (reduce) {
+      setPhase("ready");
+      return;
     }
-    lastIndex.current = idx;
-    const t = tracks[idx];
+    const v = videoRef.current;
+    if (!v) return;
+    let started = false;
+    const onPlaying = () => (started = true);
+    v.addEventListener("playing", onPlaying);
+    const start = window.setTimeout(() => {
+      v.play().catch(() => setPhase("ready"));
+    }, 1100);
+    // Lecture auto bloquée (économie d'énergie…) → on passe à l'image finale
+    const guard = window.setTimeout(() => {
+      if (!started) setPhase("ready");
+    }, 3600);
+    return () => {
+      v.removeEventListener("playing", onPlaying);
+      window.clearTimeout(start);
+      window.clearTimeout(guard);
+    };
+  }, [reduce]);
+
+  const trackOf = (key: number): Flat | undefined => tracks[assign[key]];
+
+  const playKey = (key: number) => {
+    const audio = audioRef.current;
+    const t = trackOf(key);
+    if (!audio || !t) return;
     audio.src = asset(t.src);
     setNowPlaying(t);
-    setActiveKey(keyId);
+    setActiveKey(key);
+    reroll.current = key;
     void audio.play();
+  };
+
+  // Après un clic, la touche reçoit un nouveau morceau dès qu'on la quitte :
+  // chaque clic reste une surprise.
+  const leaveKey = (key: number) => {
+    setHovered((h) => (h === key ? null : h));
+    if (reroll.current !== key || tracks.length <= KEYS.length) return;
+    reroll.current = null;
+    setAssign((cur) => {
+      const used = new Set(cur);
+      const free = tracks.map((_, i) => i).filter((i) => !used.has(i));
+      if (free.length === 0) return cur;
+      const next = [...cur];
+      next[key] = free[Math.floor(Math.random() * free.length)];
+      return next;
+    });
   };
 
   const togglePause = () => {
     const audio = audioRef.current;
     if (!audio || !nowPlaying) return;
-    playing ? audio.pause() : void audio.play();
+    if (playing) audio.pause();
+    else void audio.play();
   };
 
+  const ready = phase === "ready";
+  const hoveredTrack = hovered !== null ? trackOf(hovered) : undefined;
+
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-3xl">
+    <div className="mx-auto w-full max-w-3xl">
       <audio
         ref={audioRef}
         onPlay={() => setPlaying(true)}
@@ -88,92 +206,184 @@ export function PianoHero() {
         }}
       />
 
-      {/* Le meuble du clavier */}
-      <div
-        className="relative rounded-xl border border-gold/25 bg-gradient-to-b from-[#161618] to-[#0a0a0c] p-2.5 shadow-[0_36px_70px_-34px_rgba(0,0,0,0.95)] sm:p-3"
-        style={{ perspective: "1000px" }}
-      >
-        {/* Filet doré (abattant) */}
-        <div className="mb-2 h-1 rounded-full bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
-
-        {/* Clavier — incliné pour le relief, clippé en coins arrondis lisses */}
+      <div className="relative aspect-video w-full select-none">
+        {/* Halo doré derrière le piano */}
         <div
-          className="relative select-none overflow-hidden rounded-md"
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-6 -inset-y-4 rounded-[50%] opacity-70 blur-3xl"
           style={{
-            transform: reduce ? undefined : "rotateX(7deg)",
-            transformOrigin: "center bottom",
+            background:
+              "radial-gradient(ellipse at center, rgba(198,166,100,0.16), transparent 68%)",
+          }}
+        />
+
+        {/* Image détourée : les bords se fondent dans le décor */}
+        <div
+          className="absolute inset-0"
+          style={{
+            maskImage:
+              "linear-gradient(to right, transparent 0%, #000 16%, #000 84%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 18%, #000 80%, transparent 100%)",
+            maskComposite: "intersect",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent 0%, #000 16%, #000 84%, transparent 100%), linear-gradient(to bottom, transparent 0%, #000 18%, #000 80%, transparent 100%)",
+            WebkitMaskComposite: "source-in",
           }}
         >
-          {/* Touches blanches */}
-          <div className="relative flex h-36 sm:h-44 md:h-52">
-            {Array.from({ length: WHITE_COUNT }).map((_, i) => {
-              const id = `w${i}`;
-              const on = activeKey === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  aria-label={playKeyLabel}
-                  onClick={() => playRandom(id)}
-                  className={`relative h-full flex-1 border-l border-black/15 transition-[transform,filter] duration-100 first:border-l-0 active:translate-y-[3px] ${
-                    on
-                      ? "bg-gradient-to-b from-[#f6e6bf] to-[#e7cf95]"
-                      : "bg-gradient-to-b from-[#faf8f2] to-[#e7e1d3] hover:from-white hover:to-[#efeadd]"
-                  }`}
+          {!reduce && (
+            <video
+              ref={videoRef}
+              muted
+              playsInline
+              preload="auto"
+              poster={asset(STILL_START)}
+              onEnded={() => setPhase("ready")}
+              onError={() => setPhase("ready")}
+              onClick={() => setPhase("ready")}
+              className="absolute inset-0 h-full w-full object-cover"
+            >
+              <source src={asset(VIDEO)} type="video/mp4" />
+            </video>
+          )}
+
+          {/* Image finale (identique à la dernière image de la vidéo) */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={asset(STILL_END)}
+            alt=""
+            draggable={false}
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+              ready ? "opacity-100" : "opacity-0"
+            }`}
+          />
+
+          {/* Touches interactives */}
+          {ready && (
+            <svg
+              viewBox={`0 0 ${W} ${H}`}
+              preserveAspectRatio="none"
+              className="absolute inset-0 h-full w-full"
+              role="group"
+              aria-label={
+                en ? "Piano keys — each plays a track" : "Touches du piano — chacune joue un morceau"
+              }
+            >
+              <defs>
+                {KEYS.map((k) => (
+                  <linearGradient
+                    key={k.id}
+                    id={`glow-${k.id}`}
+                    gradientUnits="userSpaceOnUse"
+                    x1={k.front[0]}
+                    y1={k.front[1]}
+                    x2={k.back[0]}
+                    y2={k.back[1]}
+                  >
+                    <stop offset="0" stopColor="#f3d590" stopOpacity="0.85" />
+                    <stop offset="0.45" stopColor="#c6a664" stopOpacity="0.5" />
+                    <stop offset="1" stopColor="#c6a664" stopOpacity="0" />
+                  </linearGradient>
+                ))}
+              </defs>
+              {KEYS.map((k, i) => {
+                const t = trackOf(i);
+                const lit = hovered === i;
+                const on = activeKey === i;
+                return (
+                  <polygon
+                    key={k.id}
+                    points={k.points}
+                    fill={`url(#glow-${k.id})`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={
+                      t
+                        ? `${en ? "Play" : "Écouter"} ${t.titre} — ${t.collection}`
+                        : en
+                          ? "Play a track"
+                          : "Écouter un morceau"
+                    }
+                    onPointerEnter={() => setHovered(i)}
+                    onPointerLeave={() => leaveKey(i)}
+                    onFocus={() => setHovered(i)}
+                    onBlur={() => leaveKey(i)}
+                    onClick={() => playKey(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        playKey(i);
+                      }
+                    }}
+                    className={`cursor-pointer outline-none transition-opacity ${
+                      lit
+                        ? "opacity-100 duration-300"
+                        : on
+                          ? "opacity-60 duration-700"
+                          : "opacity-0 duration-700"
+                    }`}
+                    style={{ pointerEvents: "all" }}
+                  />
+                );
+              })}
+            </svg>
+          )}
+        </div>
+
+        {/* Titre « féerique » au-dessus de la touche survolée */}
+        <AnimatePresence>
+          {ready && hovered !== null && hoveredTrack && (
+            <motion.div
+              key={`${hovered}-${hoveredTrack.src}`}
+              initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -8, filter: "blur(6px)" }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              className="pointer-events-none absolute z-10"
+              style={{
+                left: `${(KEYS[hovered].anchor[0] / W) * 100}%`,
+                top: `${(KEYS[hovered].anchor[1] / H) * 100}%`,
+              }}
+            >
+              <div className="relative -translate-x-1/2 -translate-y-[130%] whitespace-nowrap text-center">
+                {/* Brume sombre : garde le titre lisible sur les touches claires */}
+                <span
+                  aria-hidden
+                  className="absolute -inset-x-8 -inset-y-3 rounded-[50%] bg-black/70 blur-lg"
+                />
+                <Sparkles reduce={reduce} />
+                <span
+                  className="relative block font-serif text-base italic text-[#f6e3b4] sm:text-lg md:text-xl"
                   style={{
-                    boxShadow: on
-                      ? "inset 0 -14px 18px -12px rgba(198,166,100,0.9), inset 0 0 0 1px rgba(198,166,100,0.5)"
-                      : "inset 0 -12px 14px -12px rgba(0,0,0,0.35)",
+                    textShadow:
+                      "0 0 18px rgba(198,166,100,0.75), 0 0 2px rgba(0,0,0,0.9), 0 2px 10px rgba(0,0,0,0.85)",
                   }}
                 >
-                  {/* liseré doré en pied de touche */}
-                  <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gold/30" />
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Touches noires */}
-          {blackKeys.map(({ id, leftIndex }) => {
-            const on = activeKey === id;
-            const left = (leftIndex + 1) * WHITE_W - WHITE_W * 0.32;
-            return (
-              <button
-                key={id}
-                type="button"
-                aria-label="Jouer un morceau au hasard"
-                onClick={() => playRandom(id)}
-                className="absolute top-0 z-10 h-[62%] rounded-b-[5px] transition-[transform,filter] duration-100 active:translate-y-[2px]"
-                style={{
-                  left: `${left}%`,
-                  width: `${WHITE_W * 0.64}%`,
-                  background: on
-                    ? "linear-gradient(to bottom, #8a6d2e, #5f4a18)"
-                    : "linear-gradient(to bottom, #2b2b31, #070708)",
-                  boxShadow: on
-                    ? "0 5px 8px rgba(0,0,0,0.6), 0 0 14px rgba(198,166,100,0.65), inset 0 1px 0 rgba(255,232,180,0.4)"
-                    : "0 5px 7px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.12)",
-                }}
-              />
-            );
-          })}
-        </div>
+                  {hoveredTrack.titre}
+                </span>
+                <span
+                  className="relative mt-0.5 block text-[0.55rem] uppercase tracking-[0.32em] text-ink-soft sm:text-[0.6rem]"
+                  style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+                >
+                  {hoveredTrack.collection}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* En écoute + bouton pause stylisé */}
-      <div className="mt-5 flex min-h-9 items-center justify-center gap-3 text-sm">
+      {/* En écoute + bouton pause */}
+      <div className="mt-3 flex min-h-9 items-center justify-center gap-3 text-sm">
         {nowPlaying ? (
           <>
-            {/* Bouton pause / reprise — pastille dorée */}
             <button
               type="button"
               onClick={togglePause}
               aria-label={
                 playing
-                  ? locale === "en"
+                  ? en
                     ? "Pause the music"
                     : "Mettre la musique en pause"
-                  : locale === "en"
+                  : en
                     ? "Resume the music"
                     : "Reprendre la musique"
               }
@@ -192,14 +402,63 @@ export function PianoHero() {
             </span>
           </>
         ) : (
-          <span className="text-ink-mute">
-            {locale === "en"
-              ? "Touch a key — let chance pick a track"
-              : "Touchez une note — laissez le hasard choisir un morceau"}
+          <span
+            className={`text-ink-mute transition-opacity duration-700 ${
+              ready ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {en
+              ? "Brush a key to reveal a title — click to listen"
+              : "Effleurez une touche pour révéler un titre — cliquez pour l'écouter"}
           </span>
         )}
       </div>
     </div>
+  );
+}
+
+/* Poussière d'étoiles autour du titre */
+const SPARKS = [
+  { x: -46, y: -6, d: 0, s: 3 },
+  { x: -18, y: -20, d: 0.25, s: 2 },
+  { x: 14, y: -24, d: 0.1, s: 2.5 },
+  { x: 44, y: -10, d: 0.4, s: 3 },
+  { x: 58, y: 10, d: 0.55, s: 2 },
+  { x: -60, y: 12, d: 0.35, s: 2 },
+];
+
+function Sparkles({ reduce }: { reduce: boolean | null }) {
+  if (reduce) return null;
+  return (
+    <span aria-hidden className="absolute left-1/2 top-1/2">
+      {SPARKS.map((p, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full bg-[#ffe9b0]"
+          style={{
+            left: `${p.x}%`,
+            top: p.y,
+            width: p.s,
+            height: p.s,
+            marginLeft: p.x,
+            boxShadow: "0 0 8px 1px rgba(255,225,160,0.9)",
+          }}
+          initial={{ opacity: 0, scale: 0, y: 6 }}
+          animate={{
+            opacity: [0, 1, 0],
+            scale: [0, 1, 0.4],
+            y: [6, -6, -16],
+          }}
+          transition={{
+            duration: 1.6,
+            delay: p.d,
+            repeat: Infinity,
+            repeatDelay: 0.5,
+            ease: "easeOut",
+          }}
+        />
+      ))}
+    </span>
   );
 }
 
