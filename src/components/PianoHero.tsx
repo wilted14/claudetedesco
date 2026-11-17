@@ -385,8 +385,8 @@ export function PianoHero() {
                     x2={k.back[0]}
                     y2={k.back[1]}
                   >
-                    <stop offset="0" stopColor="#f0d28c" stopOpacity="0.4" />
-                    <stop offset="0.45" stopColor="#c6a664" stopOpacity="0.2" />
+                    <stop offset="0" stopColor="#f0d28c" stopOpacity="0.3" />
+                    <stop offset="0.45" stopColor="#c6a664" stopOpacity="0.15" />
                     <stop offset="1" stopColor="#c6a664" stopOpacity="0.03" />
                   </linearGradient>
                 ))}
@@ -397,13 +397,14 @@ export function PianoHero() {
                 )}
               </defs>
 
-              {/* Surbrillances dorées, découpées sur la forme réelle des touches */}
+              {/* Surbrillances dorées : uniquement le DESSUS de la touche (pas sa face
+                  avant), découpées sur la forme réelle des touches */}
               <g mask="url(#pk-whites)" style={{ pointerEvents: "none" }}>
                 {KEYS.map((k, i) =>
                   i === pressKey ? null : (
                     <polygon
                       key={k.id}
-                      points={k.hit}
+                      points={k.points}
                       fill={`url(#glow-${k.id})`}
                       className={glowCls(i)}
                     />
@@ -449,7 +450,7 @@ export function PianoHero() {
                         }}
                       />
                       <polygon
-                        points={KEYS[pressKey].hit}
+                        points={KEYS[pressKey].points}
                         fill={`url(#glow-${KEYS[pressKey].id})`}
                         className={glowCls(pressKey)}
                       />
