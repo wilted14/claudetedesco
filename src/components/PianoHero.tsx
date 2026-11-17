@@ -33,21 +33,24 @@ const STILL_END = "/images/piano-hero-end.jpg";
 // épousent ainsi la forme réelle de chaque touche (les noires la découpent).
 const KEYS_MASK = "/images/piano-hero-keys-mask.jpg";
 
-/* Repère de l'image finale (1280×720). u = le long du clavier, v = du fond
-   (feutre rouge, v=0) vers le bord avant des touches blanches (v=1).
-   Le quadrilatère couvre REF_KEYS touches blanches. */
+/* Repère de l'image finale (1280×720). u = le long du clavier, v = vers le
+   bord avant des touches blanches (v=1) ; le fond du clavier (feutre rouge)
+   est vers v = V_BACK. Le quadrilatère couvre REF_KEYS touches blanches.
+   Ses coins sont AJUSTÉS sur les rainures réelles entre les touches,
+   détectées par analyse des pixels de l'image (écart < 1 px). */
 const W = 1280;
 const H = 720;
 const REF_KEYS = 5;
 const QUAD: [Pt, Pt, Pt, Pt] = [
-  [839, 302], // fond, côté lointain   (u=0, v=0)
-  [1201, 443], // fond, côté proche     (u=1, v=0)
-  [530, 625], // avant, côté proche    (u=1, v=1)
-  [258, 430], // avant, côté lointain  (u=0, v=1)
+  [625.4, 361], // côté lointain          (u=0, v=0)
+  [984.9, 521.3], // côté proche          (u=1, v=0)
+  [613.1, 684.5], // avant, côté proche   (u=1, v=1)
+  [292.3, 454.6], // avant, côté lointain (u=0, v=1)
 ];
+const V_BACK = -0.7;
 // Touches affichées : indices relatifs au quadrilatère de référence.
 const KEY_FROM = -5;
-const KEY_TO = 8;
+const KEY_TO = 7;
 
 /** Homographie carré unité → quadrilatère (Heckbert). */
 function homography([p0, p1, p2, p3]: [Pt, Pt, Pt, Pt]) {
@@ -88,11 +91,11 @@ const KEYS = Array.from({ length: KEY_TO - KEY_FROM }, (_, n) => {
   const dip = edge * 0.2; // enfoncement du bord avant quand on appuie
   const str = (pts: Pt[]) =>
     pts.map((p) => p.map((c) => c.toFixed(1)).join(",")).join(" ");
-  const top: Pt[] = [project(u0, 0.02), project(u1, 0.02), f1, f0];
+  const top: Pt[] = [project(u0, V_BACK), project(u1, V_BACK), f1, f0];
   // dessus + face avant (prolongée de l'enfoncement) : zone de la touche
   const body = (extra: number): Pt[] => [
-    project(u0, 0.02),
-    project(u1, 0.02),
+    project(u0, V_BACK),
+    project(u1, V_BACK),
     f1,
     [f1[0], f1[1] + face + extra],
     [f0[0], f0[1] + face + extra],
@@ -101,7 +104,7 @@ const KEYS = Array.from({ length: KEY_TO - KEY_FROM }, (_, n) => {
   // La touche pivote à l'arrière : le déplacement vertical croît de 0 (fond)
   // à `dip` (bord avant). C'est une transformation affine de l'image.
   const front = project(um, 1);
-  const pivot = project(um, 0);
+  const pivot = project(um, V_BACK);
   const ax = front[0] - pivot[0];
   const ay = front[1] - pivot[1];
   const len2 = ax * ax + ay * ay;
@@ -115,12 +118,12 @@ const KEYS = Array.from({ length: KEY_TO - KEY_FROM }, (_, n) => {
     clip: str(body(dip)),
     pressed,
     front, // milieu du bord avant
-    back: project(um, 0.05),
+    back: project(um, V_BACK * 0.85),
     // point d'ancrage du titre, gardé à l'intérieur du cadre
     anchor: ((p: Pt): Pt => [
       Math.min(W * 0.84, Math.max(W * 0.16, p[0])),
       Math.min(H * 0.82, Math.max(H * 0.3, p[1])),
-    ])(project(um, 0.78)),
+    ])(project(um, 0.62)),
   };
 });
 
@@ -382,9 +385,9 @@ export function PianoHero() {
                     x2={k.back[0]}
                     y2={k.back[1]}
                   >
-                    <stop offset="0" stopColor="#f3d590" stopOpacity="0.8" />
-                    <stop offset="0.5" stopColor="#c6a664" stopOpacity="0.5" />
-                    <stop offset="1" stopColor="#c6a664" stopOpacity="0.12" />
+                    <stop offset="0" stopColor="#f0d28c" stopOpacity="0.4" />
+                    <stop offset="0.45" stopColor="#c6a664" stopOpacity="0.2" />
+                    <stop offset="1" stopColor="#c6a664" stopOpacity="0.03" />
                   </linearGradient>
                 ))}
                 {pressKey !== null && (
